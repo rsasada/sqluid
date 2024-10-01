@@ -1,2 +1,2 @@
 # sqluid
-rewrite a simple sqlite 
+rewrite a simple RDBMS
