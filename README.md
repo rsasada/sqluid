@@ -28,3 +28,9 @@ sqluidは、シンプルなRDBMSの軽量な実装を目指したプロジェク
 ```sh
 # サンプルコマンド
 ./sqluid
+
+
+参考資料
+PostgreSQL Lexical Structure
+
+これを `README.md` ファイルに追加してください。
