@@ -28,9 +28,12 @@ sqluidは、シンプルなRDBMSの軽量な実装を目指したプロジェク
 ```sh
 # サンプルコマンド
 ./sqluid
+```
 
+##参考資料
 
-参考資料
-PostgreSQL Lexical Structure
+### Lexer
+posgreを参考にしました
+https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 
 これを `README.md` ファイルに追加してください。
