@@ -89,8 +89,8 @@ lex:
 func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 	cur := ic
 
-	periodFound := false
-	expMarkerFound := false
+	periodFlag := false
+	signFlag := false
 
 	for ; cur.index < uint(len(source)); cur.index++ {
 		c := source[cur.index]
@@ -98,54 +98,27 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 
 		isDigit := c >= '0' && c <= '9'
 		isPeriod := c == '.'
-		isExpMarker := c == 'e'
+		isSign := c == '+' || c == '-'
 
 		if cur.index == ic.index {
-			if !isDigit && !isPeriod {
-				return nil, ic, false
+			if isSign {
+				if c == '-' {
+					signFlag =true
+				}
+				continue
 			}
-
-			periodFound = isPeriod
-			continue
 		}
-
 		if isPeriod {
-			if periodFound {
+			if (periodFlag == true) {
 				return nil, ic, false
 			}
-
-			periodFound = true
+			periodFlag == true
 			continue
 		}
-
-		if isExpMarker {
-			if expMarkerFound {
-				return nil, ic, false
-			}
-
-			periodFound = true
-			expMarkerFound = true
-
-			// expMarker must be followed by digits
-			if cur.index == uint(len(source)-1) {
-				return nil, ic, false
-			}
-
-			cNext := source[cur.index+1]
-			if cNext == '-' || cNext == '+' {
-				cur.index++
-				cur.pos.col++
-			}
-
-			continue
-		}
-
-		if !isDigit {
+		if (!isDigit)
 			break
-		}
 	}
 
-	// No characters accumulated
 	if cur.index == ic.index {
 		return nil, ic, false
 	}
@@ -250,3 +223,37 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	}, cur, true
 }
 
+func lexIdetifier (source string, ic cursor) (*token, cursor, bool) {
+
+	value := []byte{}
+	if token, newCursor, ok := lexCharacterDelimited(source, ic, '"'); ok {
+		return token, newCursor, true
+	}
+
+	cur := ic
+
+	for ; cur.index < uint(len(source)); cur.index ++ {
+		c = source[cur.index]
+
+		isAlpabet := (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+		isNum := (c >= '0' && c <= '9')
+		if isAlpabet || isNum || c == '$' || c == '_' {
+			value = append(value, c)
+			cur.loc.col++
+			continue
+		}
+
+		break
+	}
+
+	if (len(value == 0)) {
+		return nil, ic, false
+	}
+
+	return  &token {
+		value: strings.ToLower(string(value)),
+		loc: ic.pos
+		kind: identifierKind,
+	}, cur, true
+
+}
