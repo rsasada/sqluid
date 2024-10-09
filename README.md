@@ -32,7 +32,7 @@ sqluidは、シンプルなRDBMSの軽量な実装を目指したプロジェク
 
 ## 参考資料
 
-###有名rdbmsのアーキテクチャー
+### 有名rdbmsのアーキテクチャー
 https://www.fujitsu.com/jp/products/software/resources/feature-stories/postgres/article-index/architecture-overview/
 
 ### Lexer
