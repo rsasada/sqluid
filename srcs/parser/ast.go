@@ -1,3 +1,5 @@
+package sqluid
+
 import (
 	"fmt"
 	"strings"
@@ -56,7 +58,4 @@ type SelectNode struct {
 	from	token
 }
 
-func Parse(source string, tokens []*token) (*Ast, error) {
-	
-	
-}
+

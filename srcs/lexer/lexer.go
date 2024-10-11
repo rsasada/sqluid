@@ -130,46 +130,6 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 	}, cur, true
 }
 
-func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cursor, bool) {
-	cur := ic
-
-	if len(source[cur.index:]) == 0 {
-		return nil, ic, false
-	}
-
-	if source[cur.index] != delimiter {
-		return nil, ic, false
-	}
-
-	cur.pos.col++
-	cur.index++
-
-	var value []byte
-	for ; cur.index < uint(len(source)); cur.index++ {
-		c := source[cur.index]
-
-		if c == delimiter {
-
-			if cur.index+1 >= uint(len(source)) || source[cur.index+1] != delimiter {
-				return &token{
-					value: string(value),
-					pos:   ic.pos,
-					kind:  stringKind,
-				}, cur, true
-			} else {
-				value = append(value, delimiter)
-				cur.index++
-				cur.pos.col++
-			}
-		}
-
-		value = append(value, c)
-		cur.pos.col++
-	}
-
-	return nil, ic, false
-}
-
 func lexString(source string, ic cursor) (*token, cursor, bool) {
 	return lexCharacterDelimited(source, ic, '\'')
 }
