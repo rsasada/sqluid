@@ -1,12 +1,11 @@
-package sqluid
+package lexer
 
 import (
-	"fmt"
 	"strings"
 )
 
 
-func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cursor, bool) {
+func lexCharacterDelimited(source string, ic Cursor, delimiter byte) (*Token, Cursor, bool) {
 	cur := ic
 
 	if len(source[cur.index:]) == 0 {
@@ -27,7 +26,7 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 		if c == delimiter {
 
 			if cur.index+1 >= uint(len(source)) || source[cur.index+1] != delimiter {
-				return &token{
+				return &Token{
 					value: string(value),
 					pos:   ic.pos,
 					kind:  stringKind,
@@ -46,17 +45,17 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 	return nil, ic, false
 }
 
-func longestMatch(source string, ic cursor, options []string) string {
+func longestMatch(source string, ic Cursor, options []string) string {
     var value []byte
     var skipList []int
     var match string
 
     cur := ic
 
-    for cur.pointer < uint(len(source)) {
+    for cur.index < uint(len(source)) {
 
-        value = append(value, strings.ToLower(string(source[cur.pointer]))...)
-        cur.pointer++
+        value = append(value, strings.ToLower(string(source[cur.index]))...)
+        cur.index++
 
     match:
         for i, option := range options {
@@ -66,7 +65,6 @@ func longestMatch(source string, ic cursor, options []string) string {
                 }
             }
 
-            // Deal with cases like INT vs INTO
             if option == string(value) {
                 skipList = append(skipList, i)
                 if len(option) > len(match) {
@@ -76,7 +74,7 @@ func longestMatch(source string, ic cursor, options []string) string {
                 continue
             }
 
-            sharesPrefix := string(value) == option[:cur.pointer-ic.pointer]
+            sharesPrefix := string(value) == option[:cur.index-ic.index]
             tooLong := len(value) > len(option)
             if tooLong || !sharesPrefix {
                 skipList = append(skipList, i)

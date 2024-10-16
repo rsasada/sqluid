@@ -1,45 +1,46 @@
-package sqluid
+package parser
 
 import (
 	"fmt"
 	"strings"
+	"github.com/rsasada/sqluid/srcs/lexer"
 )
 
 type NodeType uint
 
 const (
-	SelectType Nodetype = iota
+	SelectType NodeType = iota
 	CreateTableType
 	InsertType
 	BinaryPipeType
 )
 
 type Ast struct {
-	type		NodeType
-	Insert		*InsertNode
-	Select		*SelectNode
-	Create		*CreateTableNode
-	Pipe		*BinaryPipeNode
+	kind		NodeType
+	insert		*InsertNode
+	selec		*SelectNode
+	create		*CreateTableNode
+	pipe		*BinaryPipeNode
 }
 
 type BinaryPipeNode struct {
-	Left  *Ast
-	Right *Ast
+	left  *Ast
+	right *Ast
 }
 
 type columnDefinition struct {
-	name		token
-	dataType	token
+	name		lexer.Token
+	dataType	lexer.Token
 }
 
 type CreateTableNode struct {
-	tableName	token
+	tableName	lexer.Token
 	cols 		*[]*columnDefinition
 }
 
 type InsertNode struct {
-	table	token
-	values	*[]*expression
+	table	lexer.Token
+	values	*[]*Expression
 }
 
 type expressionType uint
@@ -48,14 +49,13 @@ const (
 	literalType expressionType = iota
 )
 
-type expression struct {
-	literal *token
-	type	expressionType
+type Expression struct {
+	literal *lexer.Token
+	kind	expressionType
 }
 
 type SelectNode struct {
-	item	[]*expression
-	from	token
+	item	[]*Expression
+	from	lexer.Token
 }
-
 

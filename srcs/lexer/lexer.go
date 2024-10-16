@@ -1,7 +1,8 @@
-package sqluid
+package lexer
 
 import (
 	"fmt"
+	"strings"
 )
 
 type position struct {
@@ -9,7 +10,7 @@ type position struct {
 	col  uint
 }
 
-type cursor struct {
+type Cursor struct {
 	index uint
 	pos   position
 }
@@ -49,17 +50,17 @@ const (
 	numericKind
 )
 
-type token struct {
+type Token struct {
 	value string
 	kind  tokenKind
 	pos   position
 }
 
-type lexer func(string, cursor) (*token, cursor, bool)
+type lexer func(string, Cursor) (*Token, Cursor, bool)
 
-func lexing(source string) ([]*token, error) {
-	tokens := []*token{}
-	cur := cursor{}
+func Lexing(source string) ([]*Token, error) {
+	tokens := []*Token{}
+	cur := Cursor{}
 
 lex:
 	for cur.index < uint(len(source)) {
@@ -86,11 +87,9 @@ lex:
 	return tokens, nil
 }
 
-func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
+func lexNumeric(source string, ic Cursor) (*Token, Cursor, bool) {
 	cur := ic
-
 	periodFlag := false
-	signFlag := false
 
 	for ; cur.index < uint(len(source)); cur.index++ {
 		c := source[cur.index]
@@ -100,41 +99,37 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 		isPeriod := c == '.'
 		isSign := c == '+' || c == '-'
 
-		if cur.index == ic.index {
-			if isSign {
-				if c == '-' {
-					signFlag =true
-				}
+		if cur.index == ic.index && isSign {
 				continue
-			}
 		}
 		if isPeriod {
-			if (periodFlag == true) {
+			if periodFlag == true {
 				return nil, ic, false
 			}
-			periodFlag == true
+			periodFlag = true
 			continue
 		}
-		if (!isDigit)
+		if (!isDigit) {
 			break
+		}
 	}
 
 	if cur.index == ic.index {
 		return nil, ic, false
 	}
 
-	return &token{
+	return &Token{
 		value: source[ic.index:cur.index],
 		pos:   ic.pos,
 		kind:  numericKind,
 	}, cur, true
 }
 
-func lexString(source string, ic cursor) (*token, cursor, bool) {
+func lexString(source string, ic Cursor) (*Token, Cursor, bool) {
 	return lexCharacterDelimited(source, ic, '\'')
 }
 
-func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
+func lexSymbol(source string, ic Cursor) (*Token, Cursor, bool) {
 	c := source[ic.index]
 	cur := ic
 
@@ -176,14 +171,46 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	cur.index = ic.index + uint(len(match))
 	cur.pos.col = ic.pos.col + uint(len(match))
 
-	return &token{
+	return &Token{
 		value: match,
 		pos:   ic.pos,
 		kind:  symbolKind,
 	}, cur, true
 }
+func lexKeyword(source string, ic Cursor) (*Token, Cursor, bool) {
+    cur := ic
+    keywords := []keyword{
+        selectKeyword,
+        insertKeyword,
+        valuesKeyword,
+        tableKeyword,
+        createKeyword,
+        fromKeyword,
+        intoKeyword,
+        textKeyword,
+    }
 
-func lexIdetifier (source string, ic cursor) (*token, cursor, bool) {
+    var options []string
+    for _, k := range keywords {
+        options = append(options, string(k))
+    }
+
+    match := longestMatch(source, ic, options)
+    if match == "" {
+        return nil, ic, false
+    }
+
+    cur.index = ic.index + uint(len(match))
+    cur.pos.col = ic.pos.col + uint(len(match))
+
+    return &Token{
+        value: match,
+        kind:  keywordKind,
+        pos:   ic.pos,
+    }, cur, true
+}
+
+func lexIdentifier(source string, ic Cursor) (*Token, Cursor, bool) {
 
 	value := []byte{}
 	if token, newCursor, ok := lexCharacterDelimited(source, ic, '"'); ok {
@@ -193,26 +220,26 @@ func lexIdetifier (source string, ic cursor) (*token, cursor, bool) {
 	cur := ic
 
 	for ; cur.index < uint(len(source)); cur.index ++ {
-		c = source[cur.index]
+		c := source[cur.index]
 
 		isAlpabet := (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
 		isNum := (c >= '0' && c <= '9')
 		if isAlpabet || isNum || c == '$' || c == '_' {
 			value = append(value, c)
-			cur.loc.col++
+			cur.pos.col++
 			continue
 		}
 
 		break
 	}
 
-	if (len(value == 0)) {
+	if (len(value) == 0) {
 		return nil, ic, false
 	}
 
-	return  &token {
+	return  &Token {
 		value: strings.ToLower(string(value)),
-		loc: ic.pos
+		pos: ic.pos,
 		kind: identifierKind,
 	}, cur, true
 

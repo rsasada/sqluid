@@ -1,62 +1,29 @@
+package parser
+
 import (
 	"fmt"
 	"strings"
+	"github.com/rsasada/sqluid/srcs/lexer"
 )
 
-type NodeType uint
+func Parser(source string, tokens []*lexer.Token) (*Ast, error) {
 
-const (
-	SelectType Nodetype = iota
-	CreateTableType
-	InsertType
-	BinaryPipeType
-)
-
-type Ast struct {
-	type		NodeType
-	Insert		*InsertNode
-	Select		*SelectNode
-	Create		*CreateTableNode
-	Pipe		*BinaryPipeNode
-}
-
-type BinaryPipeNode struct {
-	Left  *Ast
-	Right *Ast
-}
-
-type columnDefinition struct {
-	name		token
-	dataType	token
-}
-
-type CreateTableNode struct {
-	tableName	token
-	cols 		*[]*columnDefinition
-}
-
-type InsertNode struct {
-	table	token
-	values	*[]*expression
-}
-
-type expressionType uint
-
-const (
-	literalType expressionType = iota
-)
-
-type expression struct {
-	literal *token
-	type	expressionType
-}
-
-type SelectNode struct {
-	item	[]*expression
-	from	token
-}
-
-func Parse(source string, tokens []*token) (*Ast, error) {
+	topAst := Ast{}
+	cursor := 0
 	
+	ParsingTokens(source, )
+
+}
+
+func ParsingTokens (source string, tokens []*lexer.Token, cur uint) (*Ast, error) {
+	if (tokens[cur].isEqual())
+
+	else if ()
 	
+}
+
+func ParseSelect()
+
+func (t lexer.Token) isEqual(compare *lexer.Token) bool {
+	return compare.value == t.value && compare.kind == t.kind
 }
