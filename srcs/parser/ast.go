@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"fmt"
-	"strings"
 	"github.com/rsasada/sqluid/srcs/lexer"
 )
 

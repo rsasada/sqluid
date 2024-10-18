@@ -27,9 +27,9 @@ func lexCharacterDelimited(source string, ic Cursor, delimiter byte) (*Token, Cu
 
 			if cur.index+1 >= uint(len(source)) || source[cur.index+1] != delimiter {
 				return &Token{
-					value: string(value),
+					Value: string(value),
 					pos:   ic.pos,
-					kind:  stringKind,
+					Kind:  stringKind,
 				}, cur, true
 			} else {
 				value = append(value, delimiter)

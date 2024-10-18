@@ -15,44 +15,44 @@ type Cursor struct {
 	pos   position
 }
 
-type keyword string
+type Keyword string
 
 const (
-	selectKeyword keyword = "select"
-	fromKeyword   keyword = "from"
-	asKeyword     keyword = "as"
-	tableKeyword  keyword = "table"
-	createKeyword keyword = "create"
-	insertKeyword keyword = "insert"
-	intoKeyword   keyword = "into"
-	valuesKeyword keyword = "values"
-	intKeyword    keyword = "int"
-	textKeyword   keyword = "text"
+	SelectKeyword Keyword = "select"
+	FromKeyword   Keyword = "from"
+	AsKeyword     Keyword = "as"
+	TableKeyword  Keyword = "table"
+	CreateKeyword Keyword = "create"
+	InsertKeyword Keyword = "insert"
+	IntoKeyword   Keyword = "into"
+	ValuesKeyword Keyword = "values"
+	IntKeyword    Keyword = "int"
+	TextKeyword   Keyword = "text"
 )
 
-type symbol string
+type Symbol string
 
 const (
-	semicolonSymbol  symbol = ";"
-	asteriskSymbol   symbol = "*"
-	commaSymbol      symbol = ","
-	leftparenSymbol  symbol = "("
-	rightparenSymbol symbol = ")"
+	SemicolonSymbol  Symbol = ";"
+	AsteriskSymbol   Symbol = "*"
+	CommaSymbol      Symbol = ","
+	LeftparenSymbol  Symbol = "("
+	RightparenSymbol Symbol = ")"
 )
 
 type tokenKind uint
 
 const (
 	keywordKind tokenKind = iota
-	symbolKind
+	SymbolKind
 	identifierKind
 	stringKind
 	numericKind
 )
 
 type Token struct {
-	value string
-	kind  tokenKind
+	Value string
+	Kind  tokenKind
 	pos   position
 }
 
@@ -79,7 +79,7 @@ lex:
 
 		hint := ""
 		if len(tokens) > 0 {
-			hint = " after " + tokens[len(tokens)-1].value
+			hint = " after " + tokens[len(tokens)-1].Value
 		}
 		return nil, fmt.Errorf("Unable to lex token%s, at %d:%d", hint, cur.pos.line, cur.pos.col)
 	}
@@ -100,7 +100,7 @@ func lexNumeric(source string, ic Cursor) (*Token, Cursor, bool) {
 		isSign := c == '+' || c == '-'
 
 		if cur.index == ic.index && isSign {
-				continue
+			continue
 		}
 		if isPeriod {
 			if periodFlag == true {
@@ -109,7 +109,7 @@ func lexNumeric(source string, ic Cursor) (*Token, Cursor, bool) {
 			periodFlag = true
 			continue
 		}
-		if (!isDigit) {
+		if !isDigit {
 			break
 		}
 	}
@@ -119,9 +119,9 @@ func lexNumeric(source string, ic Cursor) (*Token, Cursor, bool) {
 	}
 
 	return &Token{
-		value: source[ic.index:cur.index],
+		Value: source[ic.index:cur.index],
 		pos:   ic.pos,
-		kind:  numericKind,
+		Kind:  numericKind,
 	}, cur, true
 }
 
@@ -149,16 +149,16 @@ func lexSymbol(source string, ic Cursor) (*Token, Cursor, bool) {
 	}
 
 	// Syntax that should be kept
-	symbols := []symbol{
-		commaSymbol,
-		leftparenSymbol,
-		rightparenSymbol,
-		semicolonSymbol,
-		asteriskSymbol,
+	Symbols := []Symbol{
+		CommaSymbol,
+		LeftparenSymbol,
+		RightparenSymbol,
+		SemicolonSymbol,
+		AsteriskSymbol,
 	}
 
 	var options []string
-	for _, s := range symbols {
+	for _, s := range Symbols {
 		options = append(options, string(s))
 	}
 
@@ -172,42 +172,42 @@ func lexSymbol(source string, ic Cursor) (*Token, Cursor, bool) {
 	cur.pos.col = ic.pos.col + uint(len(match))
 
 	return &Token{
-		value: match,
+		Value: match,
 		pos:   ic.pos,
-		kind:  symbolKind,
+		Kind:  SymbolKind,
 	}, cur, true
 }
 func lexKeyword(source string, ic Cursor) (*Token, Cursor, bool) {
-    cur := ic
-    keywords := []keyword{
-        selectKeyword,
-        insertKeyword,
-        valuesKeyword,
-        tableKeyword,
-        createKeyword,
-        fromKeyword,
-        intoKeyword,
-        textKeyword,
-    }
+	cur := ic
+	keywords := []Keyword{
+		SelectKeyword,
+		InsertKeyword,
+		ValuesKeyword,
+		TableKeyword,
+		CreateKeyword,
+		FromKeyword,
+		IntoKeyword,
+		TextKeyword,
+	}
 
-    var options []string
-    for _, k := range keywords {
-        options = append(options, string(k))
-    }
+	var options []string
+	for _, k := range keywords {
+		options = append(options, string(k))
+	}
 
-    match := longestMatch(source, ic, options)
-    if match == "" {
-        return nil, ic, false
-    }
+	match := longestMatch(source, ic, options)
+	if match == "" {
+		return nil, ic, false
+	}
 
-    cur.index = ic.index + uint(len(match))
-    cur.pos.col = ic.pos.col + uint(len(match))
+	cur.index = ic.index + uint(len(match))
+	cur.pos.col = ic.pos.col + uint(len(match))
 
-    return &Token{
-        value: match,
-        kind:  keywordKind,
-        pos:   ic.pos,
-    }, cur, true
+	return &Token{
+		Value: match,
+		Kind:  keywordKind,
+		pos:   ic.pos,
+	}, cur, true
 }
 
 func lexIdentifier(source string, ic Cursor) (*Token, Cursor, bool) {
@@ -219,7 +219,7 @@ func lexIdentifier(source string, ic Cursor) (*Token, Cursor, bool) {
 
 	cur := ic
 
-	for ; cur.index < uint(len(source)); cur.index ++ {
+	for ; cur.index < uint(len(source)); cur.index++ {
 		c := source[cur.index]
 
 		isAlpabet := (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
@@ -233,14 +233,14 @@ func lexIdentifier(source string, ic Cursor) (*Token, Cursor, bool) {
 		break
 	}
 
-	if (len(value) == 0) {
+	if len(value) == 0 {
 		return nil, ic, false
 	}
 
-	return  &Token {
-		value: strings.ToLower(string(value)),
-		pos: ic.pos,
-		kind: identifierKind,
+	return &Token{
+		Value: strings.ToLower(string(value)),
+		pos:   ic.pos,
+		Kind:  identifierKind,
 	}, cur, true
 
 }
