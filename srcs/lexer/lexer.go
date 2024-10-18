@@ -43,11 +43,11 @@ const (
 type tokenKind uint
 
 const (
-	keywordKind tokenKind = iota
+	KeywordKind tokenKind = iota
 	SymbolKind
-	identifierKind
-	stringKind
-	numericKind
+	IdentifierKind
+	StringKind
+	NumericKind
 )
 
 type Token struct {
@@ -205,7 +205,7 @@ func lexKeyword(source string, ic Cursor) (*Token, Cursor, bool) {
 
 	return &Token{
 		Value: match,
-		Kind:  keywordKind,
+		Kind:  KeywordKind,
 		pos:   ic.pos,
 	}, cur, true
 }
@@ -240,7 +240,7 @@ func lexIdentifier(source string, ic Cursor) (*Token, Cursor, bool) {
 	return &Token{
 		Value: strings.ToLower(string(value)),
 		pos:   ic.pos,
-		Kind:  identifierKind,
+		Kind:  IdentifierKind,
 	}, cur, true
 
 }

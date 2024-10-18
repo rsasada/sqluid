@@ -14,46 +14,46 @@ const (
 )
 
 type Ast struct {
-	kind		NodeType
-	insert		*InsertNode
-	selec		*SelectNode
-	create		*CreateTableNode
-	pipe		*BinaryPipeNode
+	Kind		NodeType
+	Insert		*InsertNode
+	Select		*SelectNode
+	Create		*CreateTableNode
+	Pipe		*BinaryPipeNode
 }
 
 type BinaryPipeNode struct {
-	left  *Ast
-	right *Ast
+	Left  *Ast
+	Right *Ast
 }
 
-type columnDefinition struct {
-	name		lexer.Token
-	dataType	lexer.Token
+type ColumnDefinition struct {
+	Name		lexer.Token
+	DataType	lexer.Token
 }
 
 type CreateTableNode struct {
-	tableName	lexer.Token
-	cols 		*[]*columnDefinition
+	TableName	lexer.Token
+	Cols 		*[]*ColumnDefinition
 }
 
 type InsertNode struct {
-	table	lexer.Token
-	values	*[]*Expression
+	Table	lexer.Token
+	Values	*[]*Expression
 }
 
-type expressionType uint
+type ExpressionType uint
 
 const (
-	literalType expressionType = iota
+	LiteralType ExpressionType = iota
 )
 
 type Expression struct {
-	literal *lexer.Token
-	kind	expressionType
+	Literal *lexer.Token
+	Kind	expressionType
 }
 
 type SelectNode struct {
-	item	[]*Expression
-	from	lexer.Token
+	Item	[]*Expression
+	From	lexer.Token
 }
 
