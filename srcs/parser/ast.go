@@ -26,14 +26,14 @@ type BinaryPipeNode struct {
 	Right *Ast
 }
 
-type ColumnDefinition struct {
+type TableColumn struct {
 	Name		lexer.Token
 	DataType	lexer.Token
 }
 
 type CreateTableNode struct {
 	TableName	lexer.Token
-	Cols 		*[]*ColumnDefinition
+	Cols 		*[]*TableColumn
 }
 
 type InsertNode struct {
@@ -53,7 +53,7 @@ type Expression struct {
 }
 
 type SelectNode struct {
-	Item	[]*Expression
+	Item	*[]*Expression
 	From	lexer.Token
 }
 
