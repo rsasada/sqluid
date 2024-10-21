@@ -4,16 +4,16 @@ import (
 	"github.com/rsasada/sqluid/srcs/lexer"
 )
 
-func Parser(source string, tokens []*lexer.Token) (*Ast, error) {
+func Parser(source string, tokens []*lexer.Token) (*Ast, bool) {
 
-	topAst := GeneratePipe()
+	topAst := &Ast{}
 	cursor := uint(0)
 	curAst := topAst
 
 	for cursor < uint(len(tokens)) {
-		newAst, newCursor := parsingTokens(source, tokens, cursor)
-		if err != nil {
-			return nil, err
+		newAst, newCursor, ok := parsingTokens(source, tokens, cursor)
+		if !ok {
+			return nil, false
 		}
 		if newCursor < uint(len(tokens)) && newAst != nil {
 			curAst = GeneratePipe()
@@ -24,9 +24,11 @@ func Parser(source string, tokens []*lexer.Token) (*Ast, error) {
 		}
 		cursor = newCursor
 	}
+
+	return topAst, true
 }
 
-func parsingTokens(source string, tokens []*lexer.Token, curAst *Ast, cursor uint) (*Ast, uint) {
+func parsingTokens(source string, tokens []*lexer.Token, cursor uint) (*Ast, uint, bool) {
 
 	semicolonToken := lexer.Token{
 		Value: string(lexer.SemicolonSymbol),
@@ -34,13 +36,30 @@ func parsingTokens(source string, tokens []*lexer.Token, curAst *Ast, cursor uin
 	}
 
 	if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
-		parseSelect(tokens, cursor, semicolonToken)
+		slct, newCur, ok := parseSelect(tokens, cursor, semicolonToken)
+		if !ok {
+			return nil, cursor, false
+		}
+		return &Ast{
+			Kind: SelectType,
+			Select: slct,
+		}, newCur, true
+
 	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
 		parseCreate()
+
 	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
-		parseInsert()
+		insert, newCur, ok := parseInsert(tokens, cursor, semicolonToken)
+		if !ok {
+			return nil, cursor, false
+		}
+		return &Ast{
+			Kind: InsertType,
+			Insert: insert,
+		}, newCur, true
+
 	} else {
-		return nil, cursor
+		return nil, cursor, false
 	}
 
 }
@@ -51,13 +70,21 @@ func parseSelect(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*Se
 	selectNode := SelectNode{}
 
 	exp, expCursor, ok := parseExpressions(tokens, newCur,
-		lexer.Token{GenerateToken(lexer.KeywordKind, lexer.FromKeyword), delimiter})
+		[]lexer.Token{GenerateToken(lexer.KeywordKind, string(lexer.FromKeyword)), delimiter})
 	if !ok {
 		return nil, cursor, false
 	}
 	newCur = expCursor
 	selectNode.Item = exp
 
+	if tokens[newCur].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.FromKeyword))) {
+		cursor ++;
+		if tokens[newCur].Kind == lexer.IdentifierKind {
+			selectNode.From = tokens[newCur]
+		}
+	}
+
+	return &selectNode, newCur+1, true
 }
 
 func parseExpressions(tokens []*lexer.Token, cursor uint, delimiter []lexer.Token) (*[]*Expression, uint, bool) {
@@ -114,4 +141,42 @@ func extractExpression(tokens []*lexer.Token, cursor uint, allowKinds []lexer.To
 	}
 
 	return nil, cursor, false
+}
+
+func parseInsert(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*InsertNode, uint, bool) {
+
+	insertNode := &InsertNode{}
+	newCur := cursor
+	newCur ++;
+
+	if !tokens[newCur].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.IntoKeyword))) {
+		return nil, cursor, false
+	}
+	newCur ++;
+
+	//parse tablename
+	if tokens[newCur].Kind != lexer.IdentifierKind {
+		return nil, cursor, false
+	}
+	insertNode.Table = tokens[newCur]
+	newCur ++;
+
+	if !tokens[newCur].IsEqual(GenerateToken(lexer.SymbolKind, string(lexer.LeftparenSymbol))) {
+		return nil, cursor, false
+	}
+	newCur++
+
+	exps, expCur, ok := parseExpressions(tokens, newCur, []lexer.Token{GenerateToken(lexer.SymbolKind, string(lexer.LeftparenSymbol))})
+	if !ok {
+		return nil, cursor, false
+	}
+	insertNode.Values = exps
+	newCur = expCur + 2
+
+	return insertNode, newCur, true
+}
+
+func parseCreate(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) {
+
+	
 }
