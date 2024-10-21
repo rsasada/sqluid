@@ -7,86 +7,82 @@ import (
 func Parser(source string, tokens []*lexer.Token) (*Ast, error) {
 
 	topAst := GeneratePipe()
-	cursor := 0
+	cursor := uint(0)
 	curAst := topAst
 
-	
 	for cursor < uint(len(tokens)) {
-		newAst, newCursor := ParsingTokens(source, tokens, cursor)
+		newAst, newCursor := parsingTokens(source, tokens, cursor)
 		if err != nil {
-			return nil, err	
+			return nil, err
 		}
-		if cursor < uint(len(tokens)) && newAst != nil {
+		if newCursor < uint(len(tokens)) && newAst != nil {
 			curAst = GeneratePipe()
-			curAst.BinaryPipeNode.Left = newAst
-			curAst = curAst.right
-		}
-		else {
+			curAst.Pipe.Left = newAst
+			curAst = curAst.Pipe.Right
+		} else {
 			curAst = newAst
 		}
-
+		cursor = newCursor
 	}
 }
-
 
 func parsingTokens(source string, tokens []*lexer.Token, curAst *Ast, cursor uint) (*Ast, uint) {
 
 	semicolonToken := lexer.Token{
 		Value: string(lexer.SemicolonSymbol),
-		Kind: SymbolKind
+		Kind:  lexer.SymbolKind,
 	}
-	
-	if tokens[cursor].isEqual(GenerateToken(lexer.keywordKind, lexer.SelectKeyword)) {
-		parseSelect(tokens, curosr, semicolonToken)
-	}
-	else if tokens[cursor].isEqual(GenerateToken(lexer.keywordKind, lexer.SelectKeyword)) {
+
+	if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
+		parseSelect(tokens, cursor, semicolonToken)
+	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
 		parseCreate()
-	}
-	else if tokens[cursor].isEqual(GenerateToken(lexer.keywordKind, lexer.SelectKeyword)) {
+	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
 		parseInsert()
-	}
-	else {
+	} else {
 		return nil, cursor
 	}
 
 }
 
-func parseSelect(tokens []*lexer.Token, cursor uint, delimiter token) (*SelectNode, uint, bool) {
+func parseSelect(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*SelectNode, uint, bool) {
 
 	newCur := cursor + 1
-	selectNode := {}SelectNode
-	
-	exp, expCursor, ok := ParseExpressions(tokens, newCursor,
+	selectNode := SelectNode{}
+
+	exp, expCursor, ok := parseExpressions(tokens, newCur,
 		lexer.Token{GenerateToken(lexer.KeywordKind, lexer.FromKeyword), delimiter})
 	if !ok {
 		return nil, cursor, false
 	}
+	newCur = expCursor
+	selectNode.Item = exp
 
 }
 
-func parseExpressions(tokens []*lexer.Token, cursor uint, delimiter token) (*[]*Expression, uint, bool) {
+func parseExpressions(tokens []*lexer.Token, cursor uint, delimiter []lexer.Token) (*[]*Expression, uint, bool) {
 
 	newCur := cursor
 	exps := []*Expression{}
 
 extract:
 	for {
-		
+
 		if cursor >= uint(len(tokens)) {
-			return nil, 
+			return nil, cursor, false
 		}
 
-		for i = 0; i < len(delimiter); i ++ {
-			if tokens[newCur].isEqual(delimite[i]) == true {
-				break parser
+		for i := 0; i < len(delimiter); i++ {
+			if tokens[newCur].IsEqual(delimiter[i]) == true {
+				break extract
 			}
 		}
 
 		if cursor != newCur {
-			if !tokens[newCur].isEqual(GenerateToken(lexer.SymbolKind, lexer.CommaSymbol)) {
+			if !tokens[newCur].IsEqual(GenerateToken(lexer.SymbolKind, string(lexer.CommaSymbol))) {
 				return nil, cursor, false
 			}
-			cursor ++;
+			cursor++
 		}
 
 		allowKind := []lexer.TokenKind{lexer.IdentifierKind, lexer.NumericKind, lexer.StringKind}
@@ -94,8 +90,9 @@ extract:
 		if !ok {
 			return nil, cursor, false
 		}
-		
 
+		exps = append(exps, exp)
+		newCur = expCur
 	}
 
 	return &exps, newCur, true
@@ -104,18 +101,17 @@ extract:
 func extractExpression(tokens []*lexer.Token, cursor uint, allowKinds []lexer.TokenKind) (*Expression, uint, bool) {
 
 	if cursor >= uint(len(tokens)) {
-		return nil, cursor, false 
+		return nil, cursor, false
 	}
 
-	for kind := range allowKinds {
+	for _, kind := range allowKinds {
 		if tokens[cursor].Kind == kind {
-			return Expression{
-				Literal:	tokens[],
-				Kind:		LiteralType
+			return &Expression{
+				Literal: tokens[cursor],
+				Kind:    LiteralType,
 			}, cursor + 1, true
 		}
 	}
 
 	return nil, cursor, false
 }
-

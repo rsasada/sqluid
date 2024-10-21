@@ -40,10 +40,10 @@ const (
 	RightparenSymbol Symbol = ")"
 )
 
-type tokenKind uint
+type TokenKind uint
 
 const (
-	KeywordKind tokenKind = iota
+	KeywordKind TokenKind = iota
 	SymbolKind
 	IdentifierKind
 	StringKind
@@ -52,7 +52,7 @@ const (
 
 type Token struct {
 	Value string
-	Kind  tokenKind
+	Kind  TokenKind
 	pos   position
 }
 
@@ -121,7 +121,7 @@ func lexNumeric(source string, ic Cursor) (*Token, Cursor, bool) {
 	return &Token{
 		Value: source[ic.index:cur.index],
 		pos:   ic.pos,
-		Kind:  numericKind,
+		Kind:  NumericKind,
 	}, cur, true
 }
 
@@ -243,4 +243,8 @@ func lexIdentifier(source string, ic Cursor) (*Token, Cursor, bool) {
 		Kind:  IdentifierKind,
 	}, cur, true
 
+}
+
+func (t *Token) IsEqual(compare Token) bool {
+	return compare.Value == t.Value && compare.Kind == t.Kind
 }

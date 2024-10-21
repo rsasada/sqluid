@@ -49,7 +49,7 @@ const (
 
 type Expression struct {
 	Literal *lexer.Token
-	Kind	expressionType
+	Kind	ExpressionType
 }
 
 type SelectNode struct {

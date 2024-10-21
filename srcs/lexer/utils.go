@@ -4,7 +4,6 @@ import (
 	"strings"
 )
 
-
 func lexCharacterDelimited(source string, ic Cursor, delimiter byte) (*Token, Cursor, bool) {
 	cur := ic
 
@@ -29,7 +28,7 @@ func lexCharacterDelimited(source string, ic Cursor, delimiter byte) (*Token, Cu
 				return &Token{
 					Value: string(value),
 					pos:   ic.pos,
-					Kind:  stringKind,
+					Kind:  StringKind,
 				}, cur, true
 			} else {
 				value = append(value, delimiter)
