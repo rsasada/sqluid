@@ -27,12 +27,12 @@ type BinaryPipeNode struct {
 }
 
 type TableColumn struct {
-	Name     lexer.Token
-	DataType lexer.Token
+	Name     *lexer.Token
+	DataType *lexer.Token
 }
 
 type CreateTableNode struct {
-	TableName lexer.Token
+	TableName *lexer.Token
 	Cols      *[]*TableColumn
 }
 
