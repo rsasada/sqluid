@@ -41,4 +41,8 @@ posgreを参考にしました
 https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 
 ### BTree
+GoによるBtreeの実装
 https://qiita.com/oko1977/items/822c0b3168716ebfbf0c
+
+BTeee入門
+https://qiita.com/kiyodori/items/f66a545a47dc59dd8839
