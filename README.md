@@ -39,4 +39,4 @@ https://www.fujitsu.com/jp/products/software/resources/feature-stories/postgres/
 posgreを参考にしました
 https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 
-これを `README.md` ファイルに追加してください。
+
