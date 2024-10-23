@@ -40,5 +40,5 @@ https://edbjapan.com/webinar/PostgreSQ_Basics_Architecture_220202.pdf
 posgreを参考にしました
 https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 
-
-
+### BTree
+https://qiita.com/oko1977/items/822c0b3168716ebfbf0c
