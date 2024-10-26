@@ -23,6 +23,7 @@ type Table struct {
     ColumnTypes []ColumnType
 	ColumnSize	[]uint
     pages        [TableMaxPages][]bytes
+	RowNum		uint
 }
 
 
@@ -40,6 +41,7 @@ type Backend interface {
 func (mb *MemoryBackend)CreateTable(node *lexer.CreateTableNode) bool {
 
 	t = Table{}
+	t.RowNum = 0
 	if (node.Cols == nil) {
 		return false
 	}
@@ -77,3 +79,36 @@ func (t *table)RowSize() uint {
 	return size
 }
 
+//serializeRowではテーブル構造とvaluesによるバリデーションは行わない
+func (t *table)serializeRow(exps []*parser.Expression) []byte {
+	buf := make([]byte, t.RowSize())
+	offset := (uint)0
+	
+	for i,  exp := range exps {
+
+		if t.ColumnType[i] == IntType {
+			
+			num := strconv.Atoi(exp.Literal)
+			err := binary.Write(buf[offset:offset+t.ColumnSize[i]], binary.BigEndian, int32(num))
+			if err != nil {
+				panic(err)
+			}
+			offset += t.ColumnSize[i]
+
+		} else if t.ColumnType[i] == TextType {
+
+			strBytes := []byte(exp.Literal)
+			copy(buffer[offset:offset+uint(len(strBytes))], strBytes)
+			offset += t.ColumnSize[i]
+
+		}
+	}
+	return buffer nil
+}
+
+func deserializeRow(data []byte) Row {
+	id := bytesToInt(data[0:4])
+	username := string(data[4 : 4+ColumnUsernameSize])
+	email := string(data[4+ColumnUsernameSize:])
+	return Row{ID: uint32(id), Username: strings.TrimSpace(username), Email: strings.TrimSpace(email)}
+}
