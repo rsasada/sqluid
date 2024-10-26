@@ -2,6 +2,7 @@ package backend
 
 import (
 	"bytes"
+	"errors"
 	"github.com/rsasada/sqluid/srcs/lexer"
 	"github.com/rsasada/sqluid/srcs/parser"
 )
@@ -38,12 +39,41 @@ type Backend interface {
     Select(*parser.SelectNode) (*Results, error)
 }
 
-func (mb *MemoryBackend)CreateTable(node *lexer.CreateTableNode) bool {
+func Executer(ast *parser.Ast, mb *MemoryBackend) error {
 
+	if ast == nil {
+		return nil
+	}
+
+	if ast.Kind == parser.BinaryPipeType {
+		ok := Executer(ast.Pipe.Left, mb)
+		if !ok {
+			return nil
+		}
+		return Executer(ast.Pipe.Left, mb)
+
+	} else if ast.Kind == parser.CreateTableType {
+		return mb.CreateTable(ast.Create)
+
+	} else if ast.Kind == parser.InsertType {
+		return mb.
+
+	} else if ast.Kind == parser.SelectType {
+
+	} else {
+		return false
+	}
+}
+
+func (mb *MemoryBackend) CreateTable(node *lexer.CreateTableNode) error {
+
+	if node == nil {
+		return errors.New("node is null,,,")
+	}
 	t = Table{}
 	t.RowNum = 0
 	if (node.Cols == nil) {
-		return false
+		return errors.New("CreateTable: missing columns")
 	}
 
 	for _, col := range *node.Cols {
@@ -67,6 +97,44 @@ func (mb *MemoryBackend)CreateTable(node *lexer.CreateTableNode) bool {
 
 	mb.tables[node.TableName.Value] = &t
 	return true
+}
+
+func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
+
+	if node == nil {
+		return errors.New("node is null,,,")
+	}
+
+	tabel := mb[node.Table.Value]
+	if table == nil {
+		return errors.New("Insert: Table not found")
+	}
+
+	slot, err := table.RowSlot
+	if err != nil {
+		return err
+	}
+
+	row := t.serializeRow(*node.Values)
+	copy(slot, row)
+
+	t.RowNum ++
+
+	return nil
+}
+
+func (t *Table) rowSlot() ([]byte, error) {
+
+	rowSize :=  t.RowSize()
+	RowsPerPage := PageSize / rowSize
+	pageNum := t.RowNum / RowsPerPage
+	rowOffset := t.RowNum % RowsPerPage
+	byteOffset := rowOffset * rowSize
+
+	if t.Pages[pageNum] == nil {
+		t.Pages[pageNum] = make([]byte, PageSize)
+	}
+	return table.Pages[pageNum][byteOffset:], nil
 }
 
 func (t *table)RowSize() uint {
@@ -106,9 +174,8 @@ func (t *table)serializeRow(exps []*parser.Expression) []byte {
 	return buffer nil
 }
 
+
+
 func deserializeRow(data []byte) Row {
-	id := bytesToInt(data[0:4])
-	username := string(data[4 : 4+ColumnUsernameSize])
-	email := string(data[4+ColumnUsernameSize:])
-	return Row{ID: uint32(id), Username: strings.TrimSpace(username), Email: strings.TrimSpace(email)}
+	
 }
