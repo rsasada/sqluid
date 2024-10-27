@@ -2,8 +2,11 @@ package backend
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
-	"github.com/rsasada/sqluid/srcs/lexer"
+	"fmt"
+	"strconv"
+
 	"github.com/rsasada/sqluid/srcs/parser"
 )
 
@@ -14,6 +17,8 @@ const (
 	TableMaxSize	= 100
 )
 
+type ColumnType uint
+
 const (
     TextType ColumnType = iota
     IntType
@@ -23,20 +28,20 @@ type Table struct {
     Columns     []string
     ColumnTypes []ColumnType
 	ColumnSize	[]uint
-    pages        [TableMaxPages][]bytes
-	RowNum		uint
+    Pages        [TableMaxSize][]byte
+	NumRows		uint
 }
 
 
 type MemoryBackend struct {
-    tables map[string]*table
+    tables map[string]*Table
 }
 
 
 type Backend interface {
     CreateTable(*parser.CreateTableNode) error
     Insert(*parser.InsertNode) error
-    Select(*parser.SelectNode) (*Results, error)
+    Select(*parser.SelectNode) (*Result, error)
 }
 
 type Result struct {
@@ -44,7 +49,7 @@ type Result struct {
         Type ColumnType
         Name string
     }
-    Records [][]Cell
+    Records [][]byte
 }
 
 func Executer(ast *parser.Ast, mb *MemoryBackend) error {
@@ -54,9 +59,9 @@ func Executer(ast *parser.Ast, mb *MemoryBackend) error {
 	}
 
 	if ast.Kind == parser.BinaryPipeType {
-		ok := Executer(ast.Pipe.Left, mb)
-		if !ok {
-			return nil
+		err := Executer(ast.Pipe.Left, mb)
+		if err != nil {
+			return err
 		}
 		return Executer(ast.Pipe.Left, mb)
 
@@ -70,16 +75,16 @@ func Executer(ast *parser.Ast, mb *MemoryBackend) error {
 		return mb.Select(ast.Select)
 
 	} else {
-		return false
+		return errors.New("Executer: unknown node type,,,")
 	}
 }
 
-func (mb *MemoryBackend) CreateTable(node *lexer.CreateTableNode) error {
+func (mb *MemoryBackend) CreateTable(node *parser.CreateTableNode) error {
 
 	if node == nil {
 		return errors.New("node is null,,,")
 	}
-	t = Table{}
+	t := Table{}
 	t.NumRows = 0
 	if (node.Cols == nil) {
 		return errors.New("CreateTable: missing columns")
@@ -90,7 +95,7 @@ func (mb *MemoryBackend) CreateTable(node *lexer.CreateTableNode) error {
 
 		var dt ColumnType
 		var size uint
-        switch col.datatype.value {
+        switch col.DataType.Value {
         case "int":
             dt = IntType
 			size = 4
@@ -98,14 +103,14 @@ func (mb *MemoryBackend) CreateTable(node *lexer.CreateTableNode) error {
             dt = TextType
 			size = 255
         default:
-            return false
+            return errors.New("CreateTable: unknown Column")
         }
-		t.ColumnType = append(t.ColumnType, dt)
+		t.ColumnTypes = append(t.ColumnTypes, dt)
 		t.ColumnSize = append(t.ColumnSize, size)
 	}
 
 	mb.tables[node.TableName.Value] = &t
-	return true
+	return nil
 }
 
 func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
@@ -114,20 +119,23 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		return errors.New("node is null,,,")
 	}
 
-	tabel := mb.tables[node.Table.Value]
+	table := mb.tables[node.Table.Value]
 	if table == nil {
 		return errors.New("Insert: Table not found")
 	}
 
-	slot, err := table.RowSlot
+	slot, err := table.RowSlot(table.NumRows)
 	if err != nil {
 		return err
 	}
 
-	row := t.serializeRow(*node.Values)
+	row, err := table.serializeRow(*node.Values)
+	if err != nil {
+		return err
+	}
 	copy(slot, row)
 
-	t.NumRows ++
+	table.NumRows ++
 
 	return nil
 }
@@ -148,10 +156,13 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 		return errors.New("Select: table not found")
 	}
 
-	for i := 0; i < table.NumRows; i ++ {
-		slot := tabale.RowSlot(i)
+	for i := uint(0); i < table.NumRows; i ++ {
+		slot, err := table.RowSlot(i)
+		if err != nil {
+			return err
+		}
 		row := table.deserializeRow(slot)
-		results := append(results, row)
+		results = append(results, row)
 	}
 
 	return nil
@@ -168,45 +179,62 @@ func (t *Table) RowSlot(rowId uint) ([]byte, error) {
 	if t.Pages[pageNum] == nil {
 		t.Pages[pageNum] = make([]byte, PageSize)
 	}
-	return table.Pages[pageNum][byteOffset:], nil
+	return t.Pages[pageNum][byteOffset:], nil
 }
 
 func (t *Table)RowSize() uint {
 
-	var total uint
+	total := uint(0)
 	for _, size := range t.ColumnSize {
 		total += size
 	}
 
-	return size
+	return total
 }
 
 //serializeRowではテーブル構造とvaluesによるバリデーションは行わない
-func (t *Table)serializeRow(exps []*parser.Expression) []byte {
+func (t *Table)serializeRow(exps []*parser.Expression) ([]byte, error) {
+
 	buf := make([]byte, t.RowSize())
-	offset := (uint)0
+	offset :=  uint(0)
 	
 	for i,  exp := range exps {
 
-		if t.ColumnType[i] == IntType {
+		if t.ColumnTypes[i] == IntType {
 			
-			num := strconv.Atoi(exp.Literal)
-			err := binary.Write(buf[offset:offset+t.ColumnSize[i]], binary.BigEndian, int32(num))
+			//AtoiはINT_MAXまでしか許容していない
+			num, err := strconv.Atoi(exp.Literal.Value)
+			if err != nil {
+				return nil, errors.New("atoi failed") 
+			}
+			numBinary := int32ToByte(int32(num))
+			copy(buf[offset:offset+t.ColumnSize[i]], numBinary)
 			if err != nil {
 				panic(err)
 			}
 			offset += t.ColumnSize[i]
 
-		} else if t.ColumnType[i] == TextType {
+		} else if t.ColumnTypes[i] == TextType {
 
-			strBytes := []byte(exp.Literal)
-			copy(buffer[offset:offset+uint(len(strBytes))], strBytes)
+			strBytes := []byte(exp.Literal.Value)
+			copy(buf[offset:offset+uint(len(strBytes))], strBytes)
 			offset += t.ColumnSize[i]
 
 		}
 	}
-	return buffer nil
+	return buf, nil
 }
+
+func int32ToByte(num int32) []byte {
+
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.BigEndian, num)
+	if err != nil {
+		fmt.Println("binary.Write failed:", err)
+	}
+	return []byte(buf.Bytes())
+}
+
 
 func (t *Table)deserializeRow(data []byte) Result {
 	
@@ -216,24 +244,24 @@ func (t *Table)deserializeRow(data []byte) Result {
 	for i, col := range t.Columns {
 		if t.ColumnTypes[i] == IntType {
 
-			result.Columns = append(columns, struct {
+			result.Columns = append(result.Columns, struct {
 				Type ColumnType
 				Name string
 			}{
-				Type: t.columnTypes[i],
-				Name: t.Columns[i],
+				Type: t.ColumnTypes[i],
+				Name: col,
 			})
 			record := data[offset:offset+4]
 			result.Records = append(result.Records, record)
 		
 		} else if t.ColumnTypes[i] == TextType {
 
-			result.Columns = append(columns, struct {
+			result.Columns = append(result.Columns, struct {
 				Type ColumnType
 				Name string
 			}{
-				Type: t.columnTypes[i],
-				Name: t.Columns[i],
+				Type: t.ColumnTypes[i],
+				Name: col,
 			})
 			record := data[offset:offset+255] 
 			result.Records = append(result.Records, record)
