@@ -40,6 +40,9 @@ https://edbjapan.com/webinar/PostgreSQ_Basics_Architecture_220202.pdf
 posgreを参考にしました
 https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 
+### Parser
+私の過去プロジェクトである自作シェル(https://github.com/rsasada/MiniShell)のParserを参考にしました。 Thanks JohnSan
+
 ### BTree
 GoによるBtreeの実装
 https://qiita.com/oko1977/items/822c0b3168716ebfbf0c
