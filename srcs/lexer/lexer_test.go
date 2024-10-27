@@ -1,6 +1,7 @@
 package lexer_test
 
 import (
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/rsasada/sqluid/srcs/lexer"
@@ -10,7 +11,7 @@ var _ = Describe("Lexer", func() {
 	Context("Lexing simple SQL queries", func() {
 
 		It("should correctly lex a simple SELECT query", func() {
-			source := "SELECT * FROM table;"
+			source := "SELECT * FROM table1;"
 			tokens, err := lexer.Lexing(source)
 
 			Expect(err).NotTo(HaveOccurred())
@@ -25,11 +26,12 @@ var _ = Describe("Lexer", func() {
 			Expect(tokens[2].Value).To(Equal("from"))
 			Expect(tokens[2].Kind).To(Equal(lexer.KeywordKind))
 
-			Expect(tokens[3].Value).To(Equal("table"))
-			Expect(tokens[3].Kind).To(Equal(lexer.IdentifierKind))  //error
+			Expect(tokens[3].Value).To(Equal("table1"))
+			Expect(tokens[3].Kind).To(Equal(lexer.IdentifierKind))
 
 			Expect(tokens[4].Value).To(Equal(";"))
 			Expect(tokens[4].Kind).To(Equal(lexer.SymbolKind))
+
 		})
 
 		It("should return an error for invalid input", func() {
@@ -88,11 +90,11 @@ var _ = Describe("Lexer", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(tokens)).To(Equal(11))
 
-			Expect(tokens[6].Value).To(Equal("1"))
-			Expect(tokens[6].Kind).To(Equal(lexer.NumericKind))
+			Expect(tokens[5].Value).To(Equal("1")) 
+			Expect(tokens[5].Kind).To(Equal(lexer.NumericKind))
 
-			Expect(tokens[8].Value).To(Equal("2.5"))
-			Expect(tokens[8].Kind).To(Equal(lexer.NumericKind))
+			Expect(tokens[7].Value).To(Equal("2.5"))
+			Expect(tokens[7].Kind).To(Equal(lexer.NumericKind))
 		})
 	})
 })
