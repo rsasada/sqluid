@@ -41,7 +41,9 @@ posgreを参考にしました
 https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 
 ### Parser
-私の過去プロジェクトである自作シェル(https://github.com/rsasada/MiniShell)のParserを参考にしました。 Thanks JohnSan
+私の過去プロジェクトである自作シェルのParserを参考にしました。Thanks you, JohnSan
+
+https://github.com/rsasada/MiniShell
 
 ### BTree
 GoによるBtreeの実装
