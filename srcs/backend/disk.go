@@ -24,15 +24,19 @@ const (
     IntType
 )
 
+type Pager {
+	file		*os.File
+	FileLength	int64
+	Pages		[TableMaxSize][]byte
+}
+
 type Table struct {
     Columns     []string
     ColumnTypes []ColumnType
 	ColumnSize	[]uint
-	
-    Pages        [TableMaxSize][]byte
+   	Pager		*Pager		
 	NumRows		uint
 }
-
 
 type MemoryBackend struct {
     tables map[string]*Table
@@ -52,6 +56,33 @@ type Result struct {
     }
     Records [][]byte
 }
+
+
+func (t *Table)PagerOpen(tableName string) error {
+	
+	pager := Pager{}
+	filepath := tableName + ".idb"
+	
+	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	pager.file = &file
+	
+	fileInfo, err := file.Stat()
+    if err != nil {
+		return err
+    }
+
+	fileSize := fileInfo.Size()
+	if fileSize < 0 {
+		return errors.New("failed to get the size of the '.idp' file")
+	}
+	pager.FileLength = fileSize
+	
+	
+}
+
 
 
 
