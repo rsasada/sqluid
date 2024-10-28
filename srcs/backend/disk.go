@@ -28,6 +28,7 @@ type Table struct {
     Columns     []string
     ColumnTypes []ColumnType
 	ColumnSize	[]uint
+	
     Pages        [TableMaxSize][]byte
 	NumRows		uint
 }
@@ -51,6 +52,8 @@ type Result struct {
     }
     Records [][]byte
 }
+
+
 
 func Executer(ast *parser.Ast, mb *MemoryBackend) error {
 
