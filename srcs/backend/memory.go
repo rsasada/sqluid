@@ -181,7 +181,6 @@ func (t *Table)RowSize() uint {
 	return size
 }
 
-//serializeRowではテーブル構造とvaluesによるバリデーションは行わない
 func (t *Table)serializeRow(exps []*parser.Expression) []byte {
 	buf := make([]byte, t.RowSize())
 	offset := (uint)0
