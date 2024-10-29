@@ -32,11 +32,9 @@
 // 	NumRows		uint
 // }
 
-
 // type MemoryBackend struct {
 //     tables map[string]*Table
 // }
-
 
 // type Backend interface {
 //     CreateTable(*parser.CreateTableNode) error
@@ -147,7 +145,7 @@
 // 	if node == nil {
 // 		return errors.New("node is null,,,")
 // 	}
-	
+
 // 	if node.From == nil {
 // 		return nil
 // 	}
@@ -197,15 +195,15 @@
 
 // 	buf := make([]byte, t.RowSize())
 // 	offset :=  uint(0)
-	
+
 // 	for i,  exp := range exps {
 
 // 		if t.ColumnTypes[i] == IntType {
-			
+
 // 			//AtoiはINT_MAXまでしか許容していない
 // 			num, err := strconv.Atoi(exp.Literal.Value)
 // 			if err != nil {
-// 				return nil, errors.New("atoi failed") 
+// 				return nil, errors.New("atoi failed")
 // 			}
 // 			numBinary := int32ToByte(int32(num))
 // 			copy(buf[offset:offset+t.ColumnSize[i]], numBinary)
@@ -235,9 +233,8 @@
 // 	return []byte(buf.Bytes())
 // }
 
-
 // func (t *Table)deserializeRow(data []byte) Result {
-	
+
 // 	result := Result{}
 // 	offset := uint(0)
 
@@ -253,7 +250,7 @@
 // 			})
 // 			record := data[offset:offset+4]
 // 			result.Records = append(result.Records, record)
-		
+
 // 		} else if t.ColumnTypes[i] == TextType {
 
 // 			result.Columns = append(result.Columns, struct {
@@ -263,7 +260,7 @@
 // 				Type: t.ColumnTypes[i],
 // 				Name: col,
 // 			})
-// 			record := data[offset:offset+255] 
+// 			record := data[offset:offset+255]
 // 			result.Records = append(result.Records, record)
 // 		}
 // 	}
