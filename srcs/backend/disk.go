@@ -217,10 +217,49 @@ func (t *Table) PagerFlush(pageNum uint, dataSize uint) error {
 
 	_, err = t.Pager.file.Write(t.Pager.Page[pageNum][:dataSize])
 	if err != nil {
-		return nil
+		return err
 	}
 
-	
+	return nil
+}
+
+func (t *Table) PagerClose() error {
+
+	pages := t.Pager.Pages
+	rowSize :=  t.RowSize()
+	RowsPerPage := PageSize / rowSize
+	numPages := t.NumRows / RowsPerPage
+
+	for i := 0; i < numPages; i ++ {
+
+		if pages[i] == nil {
+			continue
+		}
+
+		err := t.PagerFlush(i, PageSize)
+		if err != nil {
+			return err
+		}
+
+		t.Pager.Pages[i] = nil
+	}
+
+	leftOverRows := t.NumRows % RowsPerPage
+	if leftOverRows != 0 {
+
+		if pages[i] != nil {
+
+			err := t.PagerFlush(numPages, leftOverRows * t.RowSize())
+			if err != nil {
+				return err
+			}
+
+			t.Pager.Pages[numPages] 
+		}
+	}
+
+	t.Pager.file.Close()
+	return nil
 }
 
 func (t *Table) SetPage(pageNum uint) (*[]byte, err) {
