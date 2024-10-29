@@ -53,5 +53,6 @@ BTeee入門
 https://qiita.com/kiyodori/items/f66a545a47dc59dd8839
 
 ### Backend(executer)
-データの永続化についてはこちらを参考にしました
+
+disk上でのデータの永続化についてはこちらを参考にしました
 https://cstack.github.io/db_tutorial/
