@@ -87,3 +87,20 @@ func longestMatch(source string, ic Cursor, options []string) string {
 
     return match
 }
+
+func isSymbol(c string) bool {
+    Symbols := []Symbol{
+		CommaSymbol,
+		LeftparenSymbol,
+		RightparenSymbol,
+		SemicolonSymbol,
+		AsteriskSymbol,
+	}
+
+    for _, Symbol := range Symbols {
+        if c == string(Symbol) {
+            return true
+        }
+    }
+    return false
+}
