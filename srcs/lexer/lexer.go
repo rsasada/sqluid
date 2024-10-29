@@ -202,6 +202,9 @@ func lexKeyword(source string, ic Cursor) (*Token, Cursor, bool) {
 		return nil, ic, false
 	}
 
+	if source[ic.index + uint(len(match))] != ' ' && !isSymbol(string(source[ic.index + uint(len(match))])) {
+		return nil, ic, false
+	}
 	cur.index = ic.index + uint(len(match))
 	cur.pos.col = ic.pos.col + uint(len(match))
 
