@@ -26,8 +26,8 @@ const (
 
 type Pager {
 	file		*os.File
-	FileLength	int64
-	Pages		[TableMaxSize][]byte
+	FileLength	uint
+	Pages		[TableMaxSize]*[]byte
 }
 
 type Table struct {
@@ -56,34 +56,6 @@ type Result struct {
     }
     Records [][]byte
 }
-
-
-func (t *Table)PagerOpen(tableName string) error {
-	
-	pager := Pager{}
-	filepath := tableName + ".idb"
-	
-	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	pager.file = &file
-	
-	fileInfo, err := file.Stat()
-    if err != nil {
-		return err
-    }
-
-	fileSize := fileInfo.Size()
-	if fileSize < 0 {
-		return errors.New("failed to get the size of the '.idp' file")
-	}
-	pager.FileLength = fileSize
-	
-	
-}
-
-
 
 
 func Executer(ast *parser.Ast, mb *MemoryBackend) error {
@@ -202,7 +174,66 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 	return nil
 }
 
-func (t *Table) RowSlot(rowId uint) ([]byte, error) {
+func (t *Table)PagerOpen(tableName string) error {
+	
+	pager := Pager{}
+	filepath := tableName + ".idb"
+	
+	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	pager.file = &file
+	
+	fileInfo, err := file.Stat()
+    if err != nil {
+		return err
+    }
+
+	fileSize := fileInfo.Size()
+	if fileSize < 0 {
+		return errors.New("failed to get the size of the '.idp' file")
+	}
+	pager.FileLength = (uint)fileSize
+	
+	t.Pager = &pager
+	return nil
+}
+
+func (t *Table) SetPage(pageNum uint) (*[]byte, err) {
+
+	if pageNum > TableMaxSize {
+		return nil, errors.New("Tried to fetch page number out of bounds")
+	}
+	
+	if t.Pager.Pages[pageNum] == nil {
+
+		newPage := make([]bytes, PageSize)
+		numPages = t.Pager.FileLength / PageSize
+
+		if t.Pager.FileLength % PageSize {
+			numPages += 1
+		}
+
+		if pageNum <= numPages {
+			_, err = t.Pager.file.Seek(int64(PageSize * pageNum), 0)
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = t.Pager.File.Read(newPage)
+			if err != nil {
+				return err
+			}
+		}
+
+		t.Pager.Pages[pageNum] = &newPage
+	}
+
+	return t.Pager.Pages[pageNum]
+}
+
+func (t *Table) RowSlot(rowId uint) (*[]byte, error) {
 
 	rowSize :=  t.RowSize()
 	RowsPerPage := PageSize / rowSize
@@ -210,10 +241,12 @@ func (t *Table) RowSlot(rowId uint) ([]byte, error) {
 	rowOffset := rowId % RowsPerPage
 	byteOffset := rowOffset * rowSize
 
-	if t.Pages[pageNum] == nil {
-		t.Pages[pageNum] = make([]byte, PageSize)
+	page, err := t.SetPage(pageNum)
+	if err != nil {
+		return err
 	}
-	return t.Pages[pageNum][byteOffset:], nil
+
+	return page[pageNum][byteOffset:], nil
 }
 
 func (t *Table)RowSize() uint {
