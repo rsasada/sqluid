@@ -15,7 +15,7 @@ var _ = Describe("MemoryBackend Metadata", func() {
 	BeforeEach(func() {
 		// テスト用のMemoryBackendとTableを初期化
 		memory = &backend.MemoryBackend{
-			Tables: make(map[string]*Table),
+			Tables: make(map[string]*backend.Table),
 		}
 		table = &backend.Table{
 			Columns:     []string{"id", "name"},
@@ -51,7 +51,7 @@ var _ = Describe("MemoryBackend Metadata", func() {
 			Expect(metadata.Tables).To(HaveLen(1))
 			Expect(metadata.Tables[0].Name).To(Equal("test_table"))
 			Expect(metadata.Tables[0].Columns).To(Equal([]string{"id", "name"}))
-			Expect(metadata.Tables[0].ColumnTypes).To(Equal([]backend.ColumnType{IntType, TextType}))
+			Expect(metadata.Tables[0].ColumnTypes).To(Equal([]backend.ColumnType{backend.IntType, backend.TextType}))
 			Expect(metadata.Tables[0].ColumnSize).To(Equal([]uint{4, 50}))
 			Expect(metadata.Tables[0].NumRows).To(Equal(uint(10)))
 		})
@@ -77,7 +77,7 @@ var _ = Describe("MemoryBackend Metadata", func() {
 			Expect(loadedTable.Columns).To(Equal([]string{"id", "name"}))
 			Expect(loadedTable.ColumnTypes).To(Equal([]backend.ColumnType{backend.IntType, backend.TextType}))
 			Expect(loadedTable.ColumnSize).To(Equal([]uint{4, 50}))
-			Expect(loadedTable.RowNum).To(Equal(uint(10)))
+			Expect(loadedTable.NumRows).To(Equal(uint(10)))
 		})
 	})
 })

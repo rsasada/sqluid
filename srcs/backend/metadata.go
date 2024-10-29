@@ -20,7 +20,7 @@ type Metadata struct {
 func (mb *MemoryBackend)SaveMetadata() error {
 
 	metadata := Metadata{}
-	for name, table := range mb.tables {
+	for name, table := range mb.Tables {
 		metaTable := convertTableToMeta(table, name)
 		metadata.Tables = append(metadata.Tables, metaTable)
 	}
@@ -59,11 +59,11 @@ func (mb *MemoryBackend)LoadMetadata()	error {
 	}
 
 	for _, metaTable := range metadata.Tables {
-		if mb.tables[metaTable.Name] != nil {
+		if mb.Tables[metaTable.Name] != nil {
 			continue
 		}
 		table := convertMetaToTable(metaTable)
-		mb.tables[metaTable.Name] =  table
+		mb.Tables[metaTable.Name] =  table
 	}
 
 	return nil
