@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"os"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -24,7 +25,7 @@ const (
     IntType
 )
 
-type Pager {
+type Pager struct {
 	file		*os.File
 	FileLength	uint
 	Pages		[TableMaxSize]*[]byte
@@ -139,7 +140,7 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 	if err != nil {
 		return err
 	}
-	copy(slot, row)
+	copy(*slot, row)
 
 	table.NumRows ++
 
@@ -167,7 +168,7 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 		if err != nil {
 			return err
 		}
-		row := table.deserializeRow(slot)
+		row := table.deserializeRow(*slot)
 		results = append(results, row)
 	}
 
@@ -183,7 +184,7 @@ func (t *Table)PagerOpen(tableName string) error {
 	if err != nil {
 		return err
 	}
-	pager.file = &file
+	pager.file = file
 	
 	fileInfo, err := file.Stat()
     if err != nil {
@@ -194,7 +195,7 @@ func (t *Table)PagerOpen(tableName string) error {
 	if fileSize < 0 {
 		return errors.New("failed to get the size of the '.idp' file")
 	}
-	pager.FileLength = (uint)fileSize
+	pager.FileLength = uint(fileSize)
 
 	t.Pager = &pager
 	return nil
@@ -206,16 +207,16 @@ func (t *Table) PagerFlush(pageNum uint, dataSize uint) error {
 		return errors.New("Tried to flush page number out of bounds")
 	}
 
-	if t.Pager.page[pageNum] == nil {
+	if t.Pager.Pages[pageNum] == nil {
 		return errors.New("Tried to flush nil page")
 	}
 
-	_, err = t.Pager.file.Seek(int64(PageSize * pageNum), 0)
+	_, err := t.Pager.file.Seek(int64(PageSize * pageNum), 0)
 	if err != nil {
 		return err
 	}
 
-	_, err = t.Pager.file.Write(t.Pager.Page[pageNum][:dataSize])
+	_, err = t.Pager.file.Write((*t.Pager.Pages[pageNum])[:dataSize])
 	if err != nil {
 		return err
 	}
@@ -230,7 +231,7 @@ func (t *Table) PagerClose() error {
 	RowsPerPage := PageSize / rowSize
 	numPages := t.NumRows / RowsPerPage
 
-	for i := 0; i < numPages; i ++ {
+	for i := uint(0); i < numPages; i ++ {
 
 		if pages[i] == nil {
 			continue
@@ -247,14 +248,14 @@ func (t *Table) PagerClose() error {
 	leftOverRows := t.NumRows % RowsPerPage
 	if leftOverRows != 0 {
 
-		if pages[i] != nil {
+		if pages[numPages] != nil {
 
 			err := t.PagerFlush(numPages, leftOverRows * t.RowSize())
 			if err != nil {
 				return err
 			}
 
-			t.Pager.Pages[numPages] 
+			t.Pager.Pages[numPages] = nil
 		}
 	}
 
@@ -262,7 +263,7 @@ func (t *Table) PagerClose() error {
 	return nil
 }
 
-func (t *Table) SetPage(pageNum uint) (*[]byte, err) {
+func (t *Table) SetPage(pageNum uint) (*[]byte, error) {
 
 	if pageNum > TableMaxSize {
 		return nil, errors.New("Tried to fetch page number out of bounds")
@@ -270,29 +271,29 @@ func (t *Table) SetPage(pageNum uint) (*[]byte, err) {
 	
 	if t.Pager.Pages[pageNum] == nil {
 
-		newPage := make([]bytes, PageSize)
-		numPages = t.Pager.FileLength / PageSize
+		newPage := make([]byte, PageSize)
+		numPages := t.Pager.FileLength / PageSize
 
-		if t.Pager.FileLength % PageSize {
+		if t.Pager.FileLength % PageSize != 0 {
 			numPages += 1
 		}
 
 		if pageNum <= numPages {
-			_, err = t.Pager.file.Seek(int64(PageSize * pageNum), 0)
+			_, err := t.Pager.file.Seek(int64(PageSize * pageNum), 0)
 			if err != nil {
 				return nil, err
 			}
 
-			_, err = t.Pager.File.Read(newPage)
+			_, err = t.Pager.file.Read(newPage)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		t.Pager.Pages[pageNum] = &newPage
 	}
 
-	return t.Pager.Pages[pageNum]
+	return t.Pager.Pages[pageNum], nil
 }
 
 func (t *Table) RowSlot(rowId uint) (*[]byte, error) {
@@ -305,10 +306,11 @@ func (t *Table) RowSlot(rowId uint) (*[]byte, error) {
 
 	page, err := t.SetPage(pageNum)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return page[pageNum][byteOffset:], nil
+	slot := (*page)[byteOffset:]
+	return &slot, nil
 }
 
 func (t *Table)RowSize() uint {
