@@ -28,6 +28,11 @@ https://qiita.com/oko1977/items/822c0b3168716ebfbf0c
 BTeee入門
 https://qiita.com/kiyodori/items/f66a545a47dc59dd8839
 
+### Heap
+
+heapの解説
+https://medium.com/@yasufumy/data-structure-heap-ecfd0989e5be
+
 ### Backend(executer)
 
 disk上でのデータの永続化についてはこちらを参考にしました
