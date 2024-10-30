@@ -13,7 +13,6 @@ var _ = Describe("MemoryBackend Metadata", func() {
 	var table *backend.Table
 
 	BeforeEach(func() {
-		// テスト用のMemoryBackendとTableを初期化
 		memory = &backend.MemoryBackend{
 			Tables: make(map[string]*backend.Table),
 		}
@@ -27,7 +26,6 @@ var _ = Describe("MemoryBackend Metadata", func() {
 	})
 
 	AfterEach(func() {
-		// テスト後、ファイルを削除
 		os.Remove("TableMeta.json")
 	})
 
@@ -36,11 +34,9 @@ var _ = Describe("MemoryBackend Metadata", func() {
 			err := memory.SaveMetadata()
 			Expect(err).ToNot(HaveOccurred())
 
-			// ファイルが存在するか確認
 			_, err = os.Stat("TableMeta.json")
 			Expect(err).ToNot(HaveOccurred())
 
-			// ファイル内容を検証
 			bytes, err := os.ReadFile("TableMeta.json")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -59,19 +55,18 @@ var _ = Describe("MemoryBackend Metadata", func() {
 
 	Describe("LoadMetadata", func() {
 		BeforeEach(func() {
-			// SaveMetadataで事前にメタデータをファイルに保存
+
 			err := memory.SaveMetadata()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should load metadata from a JSON file", func() {
-			// 既存のテーブルデータをクリア
+
 			memory.Tables = make(map[string]*backend.Table)
 
 			err := memory.LoadMetadata()
 			Expect(err).ToNot(HaveOccurred())
 
-			// メタデータが正しくロードされているか確認
 			Expect(memory.Tables).To(HaveKey("test_table"))
 			loadedTable := memory.Tables["test_table"]
 			Expect(loadedTable.Columns).To(Equal([]string{"id", "name"}))
