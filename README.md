@@ -28,6 +28,9 @@ https://qiita.com/oko1977/items/822c0b3168716ebfbf0c
 BTeee入門
 https://qiita.com/kiyodori/items/f66a545a47dc59dd8839
 
+index入門
+https://qiita.com/masayasviel/items/b4f2fe76235f30270b07
+
 ### Heap
 
 heapの解説
