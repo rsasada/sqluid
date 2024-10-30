@@ -135,7 +135,7 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		return nil
 	}
 
-	mb.cursor.rowNum = table.numRows
+	mb.cursor.rowNum = table.NumRows
 	mb.cursor.end = true
 	slot, err := mb.cursor.RowSlot()
 	if err != nil {
@@ -175,7 +175,7 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 	}
 
 	for !(mb.cursor.end) {
-		slot, err := mb.cursor.RowSlot(i)
+		slot, err := mb.cursor.RowSlot()
 		if err != nil {
 			return err
 		}

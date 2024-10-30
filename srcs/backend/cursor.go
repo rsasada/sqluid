@@ -1,7 +1,7 @@
 package backend
 
 import (
-
+	"errors"
 )
 
 type Cursor struct {
@@ -17,7 +17,7 @@ func (mb *MemoryBackend) newCursor(tableName string) error {
 	if mb.Tables[tableName] == nil {
 		return errors.New("Backend: table not found ")
 	}
-	cursor.Table = mb.Tables[tablename]
+	cursor.table = mb.Tables[tableName]
 
 	cursor.rowNum = 0
 	cursor.end = (cursor.table.NumRows == 0)
