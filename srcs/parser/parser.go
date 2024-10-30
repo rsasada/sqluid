@@ -1,28 +1,39 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/rsasada/sqluid/srcs/lexer"
 )
 
 func Parser(source string, tokens []*lexer.Token) (*Ast, bool) {
 
-	topAst := &Ast{}
+	var topAst *Ast
+	var curAst *Ast
+
 	cursor := uint(0)
-	curAst := topAst
+	numAsts := 0
 
 	for cursor < uint(len(tokens)) && tokens[cursor].Kind != lexer.EndKind {
 		newAst, newCursor, ok := parsingTokens(source, tokens, cursor)
 		if !ok {
 			return nil, false
 		}
-		if newCursor < uint(len(tokens)) && newAst != nil && tokens[cursor+1].Kind != lexer.EndKind {
+		if newCursor < uint(len(tokens)) && newAst != nil && tokens[newCursor].Kind != lexer.EndKind {
 			curAst = GeneratePipe()
 			curAst.Pipe.Left = newAst
+			if numAsts == 0 {
+				topAst = curAst
+			}
 			curAst = curAst.Pipe.Right
 		} else {
 			curAst = newAst
 		}
 		cursor = newCursor
+		numAsts++
+	}
+	if numAsts == 1 {
+		topAst = curAst
 	}
 
 	return topAst, true
@@ -41,27 +52,27 @@ func parsingTokens(source string, tokens []*lexer.Token, cursor uint) (*Ast, uin
 			return nil, cursor, false
 		}
 		return &Ast{
-			Kind: SelectType,
+			Kind:   SelectType,
 			Select: slct,
 		}, newCur, true
 
-	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
+	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.CreateKeyword))) {
 		createNode, newCur, ok := parseCreateTable(tokens, cursor, semicolonToken)
 		if !ok {
 			return nil, cursor, false
 		}
 		return &Ast{
-			Kind: CreateTableType,
+			Kind:   CreateTableType,
 			Create: createNode,
 		}, newCur, true
 
-	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.SelectKeyword))) {
+	} else if tokens[cursor].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.InsertKeyword))) {
 		insert, newCur, ok := parseInsert(tokens, cursor, semicolonToken)
 		if !ok {
 			return nil, cursor, false
 		}
 		return &Ast{
-			Kind: InsertType,
+			Kind:   InsertType,
 			Insert: insert,
 		}, newCur, true
 
@@ -85,14 +96,15 @@ func parseSelect(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*Se
 	selectNode.Item = exps
 
 	if tokens[newCur].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.FromKeyword))) {
-		cursor ++;
+		newCur++
 		if tokens[newCur].Kind == lexer.IdentifierKind {
 			selectNode.From = tokens[newCur]
 		}
-		cursor ++
+		newCur++
 	}
 
 	if tokens[newCur].IsEqual(delimiter) {
+		newCur++
 		return &selectNode, newCur, true
 	} else {
 		return nil, cursor, false
@@ -118,6 +130,7 @@ extract:
 		}
 
 		if cursor != newCur {
+			fmt.Print(tokens[newCur].Value)
 			if !tokens[newCur].IsEqual(GenerateToken(lexer.SymbolKind, string(lexer.CommaSymbol))) {
 				return nil, cursor, false
 			}
@@ -133,7 +146,7 @@ extract:
 		exps = append(exps, exp)
 		newCur = expCur
 	}
-	
+
 	if len(exps) == 0 {
 		return nil, cursor, false
 	}
@@ -162,34 +175,35 @@ func extractExpression(tokens []*lexer.Token, cursor uint, allowKinds []lexer.To
 func parseInsert(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*InsertNode, uint, bool) {
 
 	newCur := cursor
-	newCur ++;
+	newCur++
 
 	if !tokens[newCur].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.IntoKeyword))) {
 		return nil, cursor, false
 	}
-	newCur ++;
+	newCur++
 
 	//parse tablename
 	if tokens[newCur].Kind != lexer.IdentifierKind {
 		return nil, cursor, false
 	}
 	table := tokens[newCur]
-	newCur ++;
+	newCur++
 
 	if !tokens[newCur].IsEqual(GenerateToken(lexer.SymbolKind, string(lexer.LeftparenSymbol))) {
 		return nil, cursor, false
 	}
 	newCur++
 
-	exps, expCur, ok := parseExpressions(tokens, newCur, []lexer.Token{GenerateToken(lexer.SymbolKind, string(lexer.LeftparenSymbol))})
+	exps, expCur, ok := parseExpressions(tokens, newCur, []lexer.Token{GenerateToken(lexer.SymbolKind, string(lexer.RightparenSymbol))})
 	if !ok {
 		return nil, cursor, false
 	}
 	newCur = expCur + 1
 
 	if tokens[newCur].IsEqual(delimiter) {
+		newCur++
 		return &InsertNode{
-			Table: table,
+			Table:  table,
 			Values: exps,
 		}, newCur, true
 	} else {
@@ -197,7 +211,7 @@ func parseInsert(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*In
 	}
 }
 
-func parseCreateTable(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*CreateTableNode, uint, bool){
+func parseCreateTable(tokens []*lexer.Token, cursor uint, delimiter lexer.Token) (*CreateTableNode, uint, bool) {
 
 	newCur := cursor + 1
 	createNode := &CreateTableNode{}
@@ -206,18 +220,18 @@ func parseCreateTable(tokens []*lexer.Token, cursor uint, delimiter lexer.Token)
 	if !tokens[newCur].IsEqual(GenerateToken(lexer.KeywordKind, string(lexer.TableKeyword))) {
 		return nil, cursor, false
 	}
-	newCur ++
+	newCur++
 
 	if tokens[newCur].Kind != lexer.IdentifierKind {
 		return nil, cursor, false
 	}
 	createNode.TableName = tokens[newCur]
-	newCur ++
+	newCur++
 
 	if !tokens[newCur].IsEqual(GenerateToken(lexer.SymbolKind, string(lexer.LeftparenSymbol))) {
 		return nil, cursor, false
 	}
-	newCur ++
+	newCur++
 
 	colmuns, colCur, ok := parseTableColumn(tokens, newCur, delimiterColumn)
 	if !ok {
@@ -227,6 +241,7 @@ func parseCreateTable(tokens []*lexer.Token, cursor uint, delimiter lexer.Token)
 	newCur = colCur + 1
 
 	if tokens[newCur].IsEqual(delimiter) {
+		newCur++
 		return createNode, newCur, true
 	} else {
 		return nil, cursor, false
@@ -252,23 +267,23 @@ extract:
 			if !tokens[newCur].IsEqual(GenerateToken(lexer.SymbolKind, string(lexer.CommaSymbol))) {
 				return nil, cursor, false
 			}
-			newCur ++
+			newCur++
 		}
 
 		if tokens[newCur].Kind != lexer.IdentifierKind {
 			return nil, cursor, false
 		}
 		columnName := tokens[newCur]
-		newCur ++
+		newCur++
 
 		if tokens[newCur].Kind != lexer.IdentifierKind {
 			return nil, cursor, false
 		}
 		columnType := tokens[newCur]
-		newCur ++
+		newCur++
 
 		columns = append(columns, &TableColumn{
-			Name: columnName,
+			Name:     columnName,
 			DataType: columnType,
 		})
 	}

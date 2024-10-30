@@ -26,8 +26,6 @@ const (
 	InsertKeyword Keyword = "insert"
 	IntoKeyword   Keyword = "into"
 	ValuesKeyword Keyword = "values"
-	IntKeyword    Keyword = "int"
-	TextKeyword   Keyword = "text"
 )
 
 type Symbol string
@@ -84,7 +82,7 @@ lex:
 		}
 		return nil, fmt.Errorf("Unable to lex token%s, at %d:%d", hint, cur.pos.line, cur.pos.col)
 	}
-	tokens = append(tokens, &Token{Kind: EndKind,})
+	tokens = append(tokens, &Token{Kind: EndKind})
 	return tokens, nil
 }
 
@@ -188,8 +186,6 @@ func lexKeyword(source string, ic Cursor) (*Token, Cursor, bool) {
 		CreateKeyword,
 		FromKeyword,
 		IntoKeyword,
-		IntKeyword,
-		TextKeyword,
 	}
 
 	var options []string
@@ -202,7 +198,7 @@ func lexKeyword(source string, ic Cursor) (*Token, Cursor, bool) {
 		return nil, ic, false
 	}
 
-	if source[ic.index + uint(len(match))] != ' ' && !isSymbol(string(source[ic.index + uint(len(match))])) {
+	if source[ic.index+uint(len(match))] != ' ' && !isSymbol(string(source[ic.index+uint(len(match))])) {
 		return nil, ic, false
 	}
 	cur.index = ic.index + uint(len(match))

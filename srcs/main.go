@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rsasada/sqluid/srcs/lexer"
+	"github.com/rsasada/sqluid/srcs/parser"
 )
 
 // position, Cursor, Keyword, Symbol, TokenKind, Token構造体の定義があると仮定します
@@ -15,10 +16,15 @@ func printTokens(tokens []*lexer.Token) {
 }
 
 func main() {
-	source := ""
+	source := "INSERT INTO table1 (name);"
 	tokens, err := lexer.Lexing(source)
+	ast, ok := parser.Parser(source, tokens)
+	if !ok {
+		fmt.Printf("ast failed")
+	}
+	parser.PrintAst(ast, 3)
 	if err != nil {
 		fmt.Print(err)
 	}
-	printTokens(tokens)
+	//printTokens(tokens)
 }
