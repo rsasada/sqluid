@@ -33,7 +33,8 @@ type Table struct {
 }
 
 type MemoryBackend struct {
-    Tables map[string]*Table
+    Tables	map[string]*Table
+	cursor	*Cursor
 }
 
 
@@ -49,6 +50,11 @@ type Result struct {
         Name string
     }
     Records [][]byte
+}
+
+func InitBackend() (*MemoryBackend, error) {
+
+
 }
 
 
@@ -124,7 +130,14 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		return errors.New("Insert: Table not found")
 	}
 
-	slot, err := table.RowSlot(table.NumRows)
+	err := mb.newCursor(node.Table.Value)
+	if err != nil {
+		return nil
+	}
+
+	mb.cursor.rowNum = table.numRows
+	mb.cursor.end = true
+	slot, err := mb.cursor.RowSlot()
 	if err != nil {
 		return err
 	}
@@ -156,11 +169,17 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 		return errors.New("Select: table not found")
 	}
 
-	for i := uint(0); i < table.NumRows; i ++ {
-		slot, err := table.RowSlot(i)
+	err := mb.newCursor(node.From.Value)
+	if err != nil {
+		return nil
+	}
+
+	for !(mb.cursor.end) {
+		slot, err := mb.cursor.RowSlot(i)
 		if err != nil {
 			return err
 		}
+		mb.cursor.next()
 		row := table.deserializeRow(*slot)
 		results = append(results, row)
 	}
@@ -168,15 +187,16 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 	return nil
 }
 
-func (t *Table) RowSlot(rowId uint) (*[]byte, error) {
+func (cur *Cursor) RowSlot() (*[]byte, error) {
 
-	rowSize :=  t.RowSize()
+	rowId := cur.rowNum
+	rowSize :=  cur.table.RowSize()
 	RowsPerPage := PageSize / rowSize
 	pageNum := rowId / RowsPerPage
 	rowOffset := rowId % RowsPerPage
 	byteOffset := rowOffset * rowSize
 
-	page, err := t.SetPage(pageNum)
+	page, err := cur.table.SetPage(pageNum)
 	if err != nil {
 		return nil, err
 	}
