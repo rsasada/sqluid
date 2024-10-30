@@ -25,6 +25,13 @@ https://github.com/rsasada/MiniShell
 GoによるBtreeの実装
 https://qiita.com/oko1977/items/822c0b3168716ebfbf0c
 
+### SqliteのstorageについてのDocument
+sqliteがどのようにレコードをb+Treeでファイルに保存しているかが分かるドキュメント
+https://sqlite.org/fileformat.html
+
+sqliteのファイルに対する操作
+https://sqlite.org/atomiccommit.html
+
 BTeee入門
 https://qiita.com/kiyodori/items/f66a545a47dc59dd8839
 
