@@ -29,7 +29,7 @@ type Table struct {
     ColumnTypes []ColumnType
 	ColumnSize	[]uint
    	Pager		*Pager		
-	NumRows		uint
+	RootPageNum	uint32
 }
 
 type MemoryBackend struct {
@@ -185,24 +185,6 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 	}
 
 	return nil
-}
-
-func (cur *Cursor) RowSlot() ([]byte, error) {
-
-	rowId := cur.rowNum
-	rowSize :=  cur.table.RowSize()
-	RowsPerPage := PageSize / rowSize
-	pageNum := rowId / RowsPerPage
-	rowOffset := rowId % RowsPerPage
-	byteOffset := rowOffset * rowSize
-
-	page, err := cur.table.SetPage(pageNum)
-	if err != nil {
-		return nil, err
-	}
-
-	slot := page[byteOffset:]
-	return slot, nil
 }
 
 func (t *Table)RowSize() uint {

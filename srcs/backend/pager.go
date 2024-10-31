@@ -2,6 +2,7 @@ package backend
 
 import (
 	"os"
+	"fmt"
 	"errors"
 )
 
@@ -9,6 +10,7 @@ type Pager struct {
 	file		*os.File
 	FileLength	uint
 	Pages		[TableMaxSize][]byte
+	numPages	uint32
 }
 
 func (t *Table)PagerOpen(tableName string) error {
@@ -33,11 +35,23 @@ func (t *Table)PagerOpen(tableName string) error {
 	}
 	pager.FileLength = uint(fileSize)
 
+	pager.NumPages = pager.FileLength / PageSize
+	if pager.FileLength % PageSize != 0 {
+		fmt.Println("Jeeez!! your DB file get fucked up,,,")
+	}
+
+	t.RootPageNum = 0
+
+	if pager.NumPages == 0 {
+		pager.Pages[0] = table.SetPage(0)
+		binary.BigEndian.PutUint32(pager.Pages[0][numCellsOffset:numCellsOffset+4], 0)
+	}
+
 	t.Pager = &pager
 	return nil
 }
 
-func (t *Table) PagerFlush(pageNum uint, dataSize uint) error {
+func (t *Table) PagerFlush(pageNum uint) error {
 
 	if pageNum > TableMaxSize {
 		return errors.New("Tried to flush page number out of bounds")
@@ -52,7 +66,7 @@ func (t *Table) PagerFlush(pageNum uint, dataSize uint) error {
 		return err
 	}
 
-	_, err = t.Pager.file.Write(t.Pager.Pages[pageNum][:dataSize])
+	_, err = t.Pager.file.Write(t.Pager.Pages[pageNum])
 	if err != nil {
 		return err
 	}
@@ -63,36 +77,19 @@ func (t *Table) PagerFlush(pageNum uint, dataSize uint) error {
 func (t *Table) PagerClose() error {
 
 	pages := t.Pager.Pages
-	rowSize :=  t.RowSize()
-	RowsPerPage := PageSize / rowSize
-	numPages := t.NumRows / RowsPerPage
 
-	for i := uint(0); i < numPages; i ++ {
+	for i := uint(0); i < t.Pager.numPages; i ++ {
 
 		if pages[i] == nil {
 			continue
 		}
 
-		err := t.PagerFlush(i, PageSize)
+		err := t.PagerFlush(i)
 		if err != nil {
 			return err
 		}
 
 		t.Pager.Pages[i] = nil
-	}
-
-	leftOverRows := t.NumRows % RowsPerPage
-	if leftOverRows != 0 {
-
-		if pages[numPages] != nil {
-
-			err := t.PagerFlush(numPages, leftOverRows * t.RowSize())
-			if err != nil {
-				return err
-			}
-
-			t.Pager.Pages[numPages] = nil
-		}
 	}
 
 	t.Pager.file.Close()
@@ -127,6 +124,10 @@ func (t *Table) SetPage(pageNum uint) ([]byte, error) {
 		}
 
 		t.Pager.Pages[pageNum] = &newPage
+
+		if pageNum >= t.Pager.NumPages {
+			t.Pager.NumPages = pageNum + 1
+		}
 	}
 
 	return t.Pager.Pages[pageNum], nil

@@ -11,3 +11,4 @@ const (
 	LeafNode
 )
 
+func (cur *Cursor)InsertToLeafNode(exps []*parser.Expression)

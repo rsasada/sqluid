@@ -1,5 +1,9 @@
 package backend
 
+import (
+	"encoding/binary"
+)
+
 type nodeHeader struct {
 	nodeType 		NodeType //uint8
 	isRoot	 		bool
@@ -61,4 +65,28 @@ func (t *Table) leafNodeMaxCells() {
 	return leafNodeSpaceForCells / leafCellSize()
 }
 
-func (t *Table)
+func (t *Table) leafNodeNumCells(node []byte) uint32 {
+
+	buf := node[numCellsOffset:numCellsOffset+4]
+	numCells := binary.BigEndian.Uint32(buf)
+
+	return numCells
+}
+
+func (t *Table) leafNodeCell(node []byte, cellNum uint32) []byte {
+
+	offset := leafNodeHeaderSize + (cellNum * t.leafCellSize())
+	return  node[offset:]
+}
+
+func (t *Table) leafNodeKey(node []byte, cellNum uint32) []byte {
+
+	return t.leafNodeCell(node, cellNum)
+}
+
+func (t *Table) leafNodeValue(node []byte, cellNum uint32) []byte {
+
+	key := t.leafNodeKey(node, cellNum)
+	return key[leafCellKeySize:]
+}
+
