@@ -20,7 +20,6 @@ var _ = Describe("MemoryBackend Metadata", func() {
 			Columns:     []string{"id", "name"},
 			ColumnTypes: []backend.ColumnType{backend.IntType, backend.TextType},
 			ColumnSize:  []uint{4, 50},
-			NumRows:      10,
 		}
 		memory.Tables["test_table"] = table
 	})
@@ -49,7 +48,6 @@ var _ = Describe("MemoryBackend Metadata", func() {
 			Expect(metadata.Tables[0].Columns).To(Equal([]string{"id", "name"}))
 			Expect(metadata.Tables[0].ColumnTypes).To(Equal([]backend.ColumnType{backend.IntType, backend.TextType}))
 			Expect(metadata.Tables[0].ColumnSize).To(Equal([]uint{4, 50}))
-			Expect(metadata.Tables[0].NumRows).To(Equal(uint(10)))
 		})
 	})
 
@@ -72,7 +70,6 @@ var _ = Describe("MemoryBackend Metadata", func() {
 			Expect(loadedTable.Columns).To(Equal([]string{"id", "name"}))
 			Expect(loadedTable.ColumnTypes).To(Equal([]backend.ColumnType{backend.IntType, backend.TextType}))
 			Expect(loadedTable.ColumnSize).To(Equal([]uint{4, 50}))
-			Expect(loadedTable.NumRows).To(Equal(uint(10)))
 		})
 	})
 })

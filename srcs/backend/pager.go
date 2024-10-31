@@ -4,13 +4,14 @@ import (
 	"os"
 	"fmt"
 	"errors"
+	"encoding/binary"
 )
 
 type Pager struct {
 	file		*os.File
-	FileLength	uint
+	FileLength	uint32
 	Pages		[TableMaxSize][]byte
-	numPages	uint32
+	NumPages	uint32
 }
 
 func (t *Table)PagerOpen(tableName string) error {
@@ -33,9 +34,9 @@ func (t *Table)PagerOpen(tableName string) error {
 	if fileSize < 0 {
 		return errors.New("failed to get the size of the '.idp' file")
 	}
-	pager.FileLength = uint(fileSize)
+	pager.FileLength = uint32(fileSize)
 
-	pager.NumPages = pager.FileLength / PageSize
+	pager.NumPages = pager.FileLength / uint32(PageSize)
 	if pager.FileLength % PageSize != 0 {
 		fmt.Println("Jeeez!! your DB file get fucked up,,,")
 	}
@@ -43,7 +44,10 @@ func (t *Table)PagerOpen(tableName string) error {
 	t.RootPageNum = 0
 
 	if pager.NumPages == 0 {
-		pager.Pages[0] = table.SetPage(0)
+		pager.Pages[0], err = t.SetPage(0)
+		if err != nil {
+			return err
+		}
 		binary.BigEndian.PutUint32(pager.Pages[0][numCellsOffset:numCellsOffset+4], 0)
 	}
 
@@ -51,7 +55,7 @@ func (t *Table)PagerOpen(tableName string) error {
 	return nil
 }
 
-func (t *Table) PagerFlush(pageNum uint) error {
+func (t *Table) PagerFlush(pageNum uint32) error {
 
 	if pageNum > TableMaxSize {
 		return errors.New("Tried to flush page number out of bounds")
@@ -78,7 +82,7 @@ func (t *Table) PagerClose() error {
 
 	pages := t.Pager.Pages
 
-	for i := uint(0); i < t.Pager.numPages; i ++ {
+	for i := uint32(0); i < t.Pager.NumPages; i ++ {
 
 		if pages[i] == nil {
 			continue
@@ -96,7 +100,7 @@ func (t *Table) PagerClose() error {
 	return nil
 }
 
-func (t *Table) SetPage(pageNum uint) ([]byte, error) {
+func (t *Table) SetPage(pageNum uint32) ([]byte, error) {
 
 	if pageNum > TableMaxSize {
 		return nil, errors.New("Tried to fetch page number out of bounds")
@@ -123,7 +127,7 @@ func (t *Table) SetPage(pageNum uint) ([]byte, error) {
 			}
 		}
 
-		t.Pager.Pages[pageNum] = &newPage
+		t.Pager.Pages[pageNum] = newPage
 
 		if pageNum >= t.Pager.NumPages {
 			t.Pager.NumPages = pageNum + 1

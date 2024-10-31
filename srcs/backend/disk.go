@@ -91,7 +91,6 @@ func (mb *MemoryBackend) CreateTable(node *parser.CreateTableNode) error {
 		return errors.New("node is null,,,")
 	}
 	t := Table{}
-	t.NumRows = 0
 	if (node.Cols == nil) {
 		return errors.New("CreateTable: missing columns")
 	}
@@ -135,7 +134,6 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		return nil
 	}
 
-	mb.cursor.rowNum = table.NumRows
 	mb.cursor.end = true
 	slot, err := mb.cursor.RowSlot()
 	if err != nil {
@@ -146,9 +144,7 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 	if err != nil {
 		return err
 	}
-	copy(*slot, row)
-
-	table.NumRows ++
+	copy(slot, row)
 
 	return nil
 }
@@ -180,7 +176,7 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 			return err
 		}
 		mb.cursor.next()
-		row := table.deserializeRow(*slot)
+		row := table.deserializeRow(slot)
 		results = append(results, row)
 	}
 

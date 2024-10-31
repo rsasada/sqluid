@@ -50,19 +50,19 @@ const (
 	leafNodeSpaceForCells = PageSize - leafNodeHeaderSize
 )
 
-func (t *Table) leafCellValueSize() {
+func (t *Table) leafCellValueSize() uint32{
 
-	return t.RowSize()
+	return uint32(t.RowSize())
 }
 
-func (t *Table) leafCellSize() {
+func (t *Table) leafCellSize() uint32{
 
-	return t.RowSize + leafCellKeySize
+	return uint32(t.RowSize()) + leafCellKeySize
 }
 
-func (t *Table) leafNodeMaxCells() {
+func (t *Table) leafNodeMaxCells() uint32{
 
-	return leafNodeSpaceForCells / leafCellSize()
+	return leafNodeSpaceForCells / t.leafCellSize()
 }
 
 func (t *Table) leafNodeNumCells(node []byte) uint32 {

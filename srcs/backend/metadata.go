@@ -10,7 +10,6 @@ type MetaTable struct {
     Columns     []string		`json:"columns"`
     ColumnTypes []ColumnType	`json:"column_types"`
 	ColumnSize	[]uint			`json:"columns_size"`
-	NumRows		uint			`json:"num_rows"`
 }
 
 type Metadata struct {
@@ -75,7 +74,6 @@ func convertTableToMeta(table *Table, tableName string) MetaTable {
 	metaTable.Columns = table.Columns
 	metaTable.ColumnTypes = table.ColumnTypes
 	metaTable.ColumnSize = table.ColumnSize
-	metaTable.NumRows = table.NumRows
 
 	return metaTable
 }
@@ -86,7 +84,6 @@ func convertMetaToTable(meta MetaTable) *Table {
         Columns:     meta.Columns,
         ColumnTypes: meta.ColumnTypes,
         ColumnSize:  meta.ColumnSize,
-        NumRows:      meta.NumRows,
     }
 
     return table

@@ -23,9 +23,12 @@ func (mb *MemoryBackend) newCursor(tableName string) error {
 	cursor.pageNum = cursor.table.RootPageNum
 	cursor.cellNum = 0
 	
-	rootNode := cursor.table.SetPage(pageNum)
+	rootNode, err := cursor.table.SetPage(uint32(cursor.pageNum))
+	if err != nil {
+		return err
+	}
 	numCells := cursor.table.leafNodeNumCells(rootNode)
-	cursor.end = (nunCells == 0)
+	cursor.end = (numCells == 0)
 
 	return nil	
 }
@@ -40,13 +43,13 @@ func (cur *Cursor) next() {
 
 func (cur *Cursor) RowSlot() ([]byte, error) {
 
-	pageNum := cursor.pageNum
+	pageNum := cur.pageNum
 
 	page, err := cur.table.SetPage(pageNum)
 	if err != nil {
 		return nil, err
 	}
 
-	row := leafNodeValue(page, cur.cellNum)
+	row := cur.table.leafNodeValue(page, cur.cellNum)
 	return row, nil
 }
