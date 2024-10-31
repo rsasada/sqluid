@@ -8,7 +8,7 @@ import (
 type Pager struct {
 	file		*os.File
 	FileLength	uint
-	Pages		[TableMaxSize]*[]byte
+	Pages		[TableMaxSize][]byte
 }
 
 func (t *Table)PagerOpen(tableName string) error {
@@ -52,7 +52,7 @@ func (t *Table) PagerFlush(pageNum uint, dataSize uint) error {
 		return err
 	}
 
-	_, err = t.Pager.file.Write((*t.Pager.Pages[pageNum])[:dataSize])
+	_, err = t.Pager.file.Write(t.Pager.Pages[pageNum][:dataSize])
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (t *Table) PagerClose() error {
 	return nil
 }
 
-func (t *Table) SetPage(pageNum uint) (*[]byte, error) {
+func (t *Table) SetPage(pageNum uint) ([]byte, error) {
 
 	if pageNum > TableMaxSize {
 		return nil, errors.New("Tried to fetch page number out of bounds")

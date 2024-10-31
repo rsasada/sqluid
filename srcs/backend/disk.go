@@ -187,7 +187,7 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 	return nil
 }
 
-func (cur *Cursor) RowSlot() (*[]byte, error) {
+func (cur *Cursor) RowSlot() ([]byte, error) {
 
 	rowId := cur.rowNum
 	rowSize :=  cur.table.RowSize()
@@ -201,8 +201,8 @@ func (cur *Cursor) RowSlot() (*[]byte, error) {
 		return nil, err
 	}
 
-	slot := (*page)[byteOffset:]
-	return &slot, nil
+	slot := page[byteOffset:]
+	return slot, nil
 }
 
 func (t *Table)RowSize() uint {
@@ -215,7 +215,7 @@ func (t *Table)RowSize() uint {
 	return total
 }
 
-//serializeRowではテーブル構造とvaluesによるバリデーションは行わない
+//serializeRowではテーブル構造とvaluesによるバリデーションは行わない 別でバリデーション用の関数を作るべき
 func (t *Table)serializeRow(exps []*parser.Expression) ([]byte, error) {
 
 	buf := make([]byte, t.RowSize())

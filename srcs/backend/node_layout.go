@@ -16,7 +16,8 @@ const (
 	nodeHeaderSize = nodeTypeSize + isRootSize + parentPointerSize
 )
 
-type leafNode struct {
+
+type leafNodeHeader struct {
 	common		nodeHeader
 	numCells	uint32
 }
@@ -24,9 +25,40 @@ type leafNode struct {
 const (
 	numCellsSize = 4
 	numCellsOffset = nodeHeaderSize
-	leafNodeSize = numCellsSize + nodeHeaderSize
+	leafNodeHeaderSize = numCellsSize + nodeHeaderSize
 )
 
+
 type leafNodeBody struct {
-	
+
+	cell	[]nodeCell
 }
+
+type nodeCell struct {
+	key		uint32
+	value	interface{}	//テーブルのrowsizeに依存する
+}
+
+const (
+	leafCellKeySize = 4
+	leafCellKeyOffset = 0
+	leafCellValueOffset = leafCellKeySize + leafCellKeyOffset
+	leafNodeSpaceForCells = PageSize - leafNodeHeaderSize
+)
+
+func (t *Table) leafCellValueSize() {
+
+	return t.RowSize()
+}
+
+func (t *Table) leafCellSize() {
+
+	return t.RowSize + leafCellKeySize
+}
+
+func (t *Table) leafNodeMaxCells() {
+
+	return leafNodeSpaceForCells / leafCellSize()
+}
+
+func (t *Table)
