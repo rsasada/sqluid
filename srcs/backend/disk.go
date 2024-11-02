@@ -30,13 +30,13 @@ type Table struct {
 	ColumnSize	[]uint
    	Pager		*Pager		
 	RootPageNum	uint32
+	RowIdMax	uint32
 }
 
 type MemoryBackend struct {
     Tables	map[string]*Table
 	cursor	*Cursor
 }
-
 
 type Backend interface {
     CreateTable(*parser.CreateTableNode) error

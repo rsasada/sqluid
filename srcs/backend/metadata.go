@@ -6,10 +6,13 @@ import (
 )
 
 type MetaTable struct {
-	Name		string			`json:"name"`
-    Columns     []string		`json:"columns"`
-    ColumnTypes []ColumnType	`json:"column_types"`
-	ColumnSize	[]uint			`json:"columns_size"`
+	Name				string			`json:"name"`
+    Columns				[]string		`json:"columns"`
+    ColumnTypes			[]ColumnType	`json:"column_types"`
+	ColumnSize			[]uint			`json:"columns_size"`
+	MaxRowId			uint32			`json:"max_row_id"`
+	PrimaryKey			bool			`json:"primary_key"`
+	PrimaryKeyColumns	string			`json:"primary_key_column"`
 }
 
 type Metadata struct {

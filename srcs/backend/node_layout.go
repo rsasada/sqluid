@@ -73,6 +73,12 @@ func (t *Table) leafNodeNumCells(node []byte) uint32 {
 	return numCells
 }
 
+func (t *Table) putLeafNodeNumCells(node []byte, numCells uint32) {
+
+	buf := node[numCellsOffset:numCellsOffset+4]
+	binary.BigEndian.PutUint32(buf, numCells)
+} 
+
 func (t *Table) leafNodeCell(node []byte, cellNum uint32) []byte {
 
 	offset := leafNodeHeaderSize + (cellNum * t.leafCellSize())
@@ -82,6 +88,12 @@ func (t *Table) leafNodeCell(node []byte, cellNum uint32) []byte {
 func (t *Table) leafNodeKey(node []byte, cellNum uint32) []byte {
 
 	return t.leafNodeCell(node, cellNum)
+}
+
+func (t *Table) putLeafNodeKey(keyNode []byte, keyNum uint32) {
+
+	buf := keyNode[:4]
+	binary.BigEndian.PutUint32(buf, keyNum)
 }
 
 func (t *Table) leafNodeValue(node []byte, cellNum uint32) []byte {
