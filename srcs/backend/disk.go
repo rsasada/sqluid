@@ -25,12 +25,13 @@ const (
 )
 
 type Table struct {
+	Name		string
     Columns     []string
     ColumnTypes []ColumnType
 	ColumnSize	[]uint
    	Pager		*Pager		
 	RootPageNum	uint32
-	RowIdMax	uint32
+	NextRowId	uint32
 }
 
 type MemoryBackend struct {
@@ -57,19 +58,18 @@ func InitBackend() (*MemoryBackend, error) {
 
 }
 
-
-func Executer(ast *parser.Ast, mb *MemoryBackend) error {
+func Executer(ast *parser.Ast, mb *MemoryBackend, results [][]Result) error {
 
 	if ast == nil {
 		return nil
 	}
 
 	if ast.Kind == parser.BinaryPipeType {
-		err := Executer(ast.Pipe.Left, mb)
+		err := Executer(ast.Pipe.Left, mb, results)
 		if err != nil {
 			return err
 		}
-		return Executer(ast.Pipe.Left, mb)
+		return Executer(ast.Pipe.Left, mb, results)
 
 	} else if ast.Kind == parser.CreateTableType {
 		return mb.CreateTable(ast.Create)
@@ -78,7 +78,14 @@ func Executer(ast *parser.Ast, mb *MemoryBackend) error {
 		return mb.Insert(ast.Insert)
 
 	} else if ast.Kind == parser.SelectType {
-		return mb.Select(ast.Select)
+
+		slctResult, err := mb.Select(ast.Select, results)
+		if err != nil {
+			return err
+		}
+
+		results = append(results, slctResult)
+		return nil
 
 	} else {
 		return errors.New("Executer: unknown node type,,,")
@@ -94,6 +101,10 @@ func (mb *MemoryBackend) CreateTable(node *parser.CreateTableNode) error {
 	if (node.Cols == nil) {
 		return errors.New("CreateTable: missing columns")
 	}
+
+	t.Name = node.TableName.Value
+	t.setRowIdColumm()
+	t.NextRowId = 0
 
 	for _, col := range *node.Cols {
 		t.Columns = append(t.Columns, col.Name.Value)
@@ -118,6 +129,13 @@ func (mb *MemoryBackend) CreateTable(node *parser.CreateTableNode) error {
 	return nil
 }
 
+func (t *Table) setRowIdColumm() {
+
+	t.Columns = append(t.Columns, "row_id")
+	t.ColumnTypes = append(t.ColumnTypes, IntType)
+	t.ColumnSize = append(t.ColumnSize, 4)
+}
+
 func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 
 	if node == nil {
@@ -129,27 +147,26 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		return errors.New("Insert: Table not found")
 	}
 
-	err := mb.newCursor(node.Table.Value)
+	node := table.SetPage(table.RootPageNum)
+
+	mb.cursor, err = table.FindInTableByKey(table.NextRowId)
+	if err != nil {
+		return err
+	}
+
+	// if mb.cur.table.NextRowId < insertするrowのkey {
+		
+	// }
+
+	err := mb.cursor.InsertToLeafNode(*node.Values)
 	if err != nil {
 		return nil
 	}
 
-	mb.cursor.end = true
-	slot, err := mb.cursor.RowSlot()
-	if err != nil {
-		return err
-	}
-
-	row, err := table.serializeRow(*node.Values)
-	if err != nil {
-		return err
-	}
-	copy(slot, row)
-
 	return nil
 }
 
-func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
+func (mb *MemoryBackend) Select(node *parser.SelectNode) ([]Results, error) {
 
 	results := []Result{}
 
@@ -180,7 +197,7 @@ func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
 		results = append(results, row)
 	}
 
-	return nil
+	return results, nil
 }
 
 func (t *Table)RowSize() uint {

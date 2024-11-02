@@ -136,3 +136,7 @@ func (t *Table) SetPage(pageNum uint32) ([]byte, error) {
 
 	return t.Pager.Pages[pageNum], nil
 }
+
+(t *Table) getUnusedPageNum() {
+	return t.Pager.numPages
+}

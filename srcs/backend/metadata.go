@@ -10,7 +10,8 @@ type MetaTable struct {
     Columns				[]string		`json:"columns"`
     ColumnTypes			[]ColumnType	`json:"column_types"`
 	ColumnSize			[]uint			`json:"columns_size"`
-	MaxRowId			uint32			`json:"max_row_id"`
+	RootPageNum			uint32			`json:"root_page_number"`
+	NextRowId			uint32			`json:"next_row_id"`
 	PrimaryKey			bool			`json:"primary_key"`
 	PrimaryKeyColumns	string			`json:"primary_key_column"`
 }
@@ -71,12 +72,14 @@ func (mb *MemoryBackend)LoadMetadata()	error {
 	return nil
 }
 
-func convertTableToMeta(table *Table, tableName string) MetaTable {
+func convertTableToMeta(table *Table) MetaTable {
 	metaTable := MetaTable{}
-	metaTable.Name = tableName
+	metaTable.Name = table.Name
 	metaTable.Columns = table.Columns
 	metaTable.ColumnTypes = table.ColumnTypes
 	metaTable.ColumnSize = table.ColumnSize
+	metaTable.RootPageNum = table.RootPageNum
+	metaTable.NextRowId = table.NextRowId
 
 	return metaTable
 }
@@ -84,9 +87,12 @@ func convertTableToMeta(table *Table, tableName string) MetaTable {
 func convertMetaToTable(meta MetaTable) *Table {
 
     table := &Table{
+		Name:		 meta.Name,
         Columns:     meta.Columns,
         ColumnTypes: meta.ColumnTypes,
         ColumnSize:  meta.ColumnSize,
+		RootPageNum: meta.RootPageNum,
+		NextRowId:   meta.NextRowId,
     }
 
     return table
