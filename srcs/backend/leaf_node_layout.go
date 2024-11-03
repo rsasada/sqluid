@@ -129,6 +129,11 @@ func (t *Table) isRootNode(node []byte) bool {
 	return true
 }
 
+func (t *Table) putNodeRoot(node []byte, bool) {
+
+	node[isRootOffset] = uint8(bool)
+} 
+
 func (t *Table) leafNodeRightSplitCount() uint32 {
 
 	right := (t.leafNodeMaxCells() + 1) / 2
