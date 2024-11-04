@@ -6,11 +6,14 @@ import (
 )
 
 type MetaTable struct {
-	Name		string			`json:"name"`
-    Columns     []string		`json:"columns"`
-    ColumnTypes []ColumnType	`json:"column_types"`
-	ColumnSize	[]uint			`json:"columns_size"`
-	NumRows		uint			`json:"num_rows"`
+	Name				string			`json:"name"`
+    Columns				[]string		`json:"columns"`
+    ColumnTypes			[]ColumnType	`json:"column_types"`
+	ColumnSize			[]uint			`json:"columns_size"`
+	RootPageNum			uint32			`json:"root_page_number"`
+	NextRowId			uint32			`json:"next_row_id"`
+	PrimaryKey			bool			`json:"primary_key"`
+	PrimaryKeyColumns	string			`json:"primary_key_column"`
 }
 
 type Metadata struct {
@@ -20,8 +23,8 @@ type Metadata struct {
 func (mb *MemoryBackend)SaveMetadata() error {
 
 	metadata := Metadata{}
-	for name, table := range mb.Tables {
-		metaTable := convertTableToMeta(table, name)
+	for _, table := range mb.Tables {
+		metaTable := convertTableToMeta(table)
 		metadata.Tables = append(metadata.Tables, metaTable)
 	}
 	jsonData, err := json.MarshalIndent(metadata, "", "  ")
@@ -69,13 +72,14 @@ func (mb *MemoryBackend)LoadMetadata()	error {
 	return nil
 }
 
-func convertTableToMeta(table *Table, tableName string) MetaTable {
+func convertTableToMeta(table *Table) MetaTable {
 	metaTable := MetaTable{}
-	metaTable.Name = tableName
+	metaTable.Name = table.Name
 	metaTable.Columns = table.Columns
 	metaTable.ColumnTypes = table.ColumnTypes
 	metaTable.ColumnSize = table.ColumnSize
-	metaTable.NumRows = table.NumRows
+	metaTable.RootPageNum = table.RootPageNum
+	metaTable.NextRowId = table.NextRowId
 
 	return metaTable
 }
@@ -83,10 +87,12 @@ func convertTableToMeta(table *Table, tableName string) MetaTable {
 func convertMetaToTable(meta MetaTable) *Table {
 
     table := &Table{
+		Name:		 meta.Name,
         Columns:     meta.Columns,
         ColumnTypes: meta.ColumnTypes,
         ColumnSize:  meta.ColumnSize,
-        NumRows:      meta.NumRows,
+		RootPageNum: meta.RootPageNum,
+		NextRowId:   meta.NextRowId,
     }
 
     return table

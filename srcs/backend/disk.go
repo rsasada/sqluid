@@ -25,17 +25,19 @@ const (
 )
 
 type Table struct {
+	Name		string
     Columns     []string
     ColumnTypes []ColumnType
 	ColumnSize	[]uint
    	Pager		*Pager		
-	NumRows		uint
+	RootPageNum	uint32
+	NextRowId	uint32
 }
 
 type MemoryBackend struct {
-    Tables map[string]*Table
+    Tables	map[string]*Table
+	cursor	*Cursor
 }
-
 
 type Backend interface {
     CreateTable(*parser.CreateTableNode) error
@@ -51,19 +53,23 @@ type Result struct {
     Records [][]byte
 }
 
+func InitBackend() (*MemoryBackend, error) {
 
-func Executer(ast *parser.Ast, mb *MemoryBackend) error {
+
+}
+
+func Executer(ast *parser.Ast, mb *MemoryBackend, results [][]Result) error {
 
 	if ast == nil {
 		return nil
 	}
 
 	if ast.Kind == parser.BinaryPipeType {
-		err := Executer(ast.Pipe.Left, mb)
+		err := Executer(ast.Pipe.Left, mb, results)
 		if err != nil {
 			return err
 		}
-		return Executer(ast.Pipe.Left, mb)
+		return Executer(ast.Pipe.Left, mb, results)
 
 	} else if ast.Kind == parser.CreateTableType {
 		return mb.CreateTable(ast.Create)
@@ -72,7 +78,14 @@ func Executer(ast *parser.Ast, mb *MemoryBackend) error {
 		return mb.Insert(ast.Insert)
 
 	} else if ast.Kind == parser.SelectType {
-		return mb.Select(ast.Select)
+
+		slctResult, err := mb.Select(ast.Select)
+		if err != nil {
+			return err
+		}
+
+		results = append(results, slctResult)
+		return nil
 
 	} else {
 		return errors.New("Executer: unknown node type,,,")
@@ -85,10 +98,13 @@ func (mb *MemoryBackend) CreateTable(node *parser.CreateTableNode) error {
 		return errors.New("node is null,,,")
 	}
 	t := Table{}
-	t.NumRows = 0
 	if (node.Cols == nil) {
 		return errors.New("CreateTable: missing columns")
 	}
+
+	t.Name = node.TableName.Value
+	t.setRowIdColumm()
+	t.NextRowId = 0
 
 	for _, col := range *node.Cols {
 		t.Columns = append(t.Columns, col.Name.Value)
@@ -113,7 +129,16 @@ func (mb *MemoryBackend) CreateTable(node *parser.CreateTableNode) error {
 	return nil
 }
 
+func (t *Table) setRowIdColumm() {
+
+	t.Columns = append(t.Columns, "row_id")
+	t.ColumnTypes = append(t.ColumnTypes, IntType)
+	t.ColumnSize = append(t.ColumnSize, 4)
+}
+
 func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
+
+	var err error
 
 	if node == nil {
 		return errors.New("node is null,,,")
@@ -124,65 +149,57 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		return errors.New("Insert: Table not found")
 	}
 
-	slot, err := table.RowSlot(table.NumRows)
+	//page, err := table.SetPage(table.RootPageNum)
+
+	mb.cursor, err = table.FindInTableByKey(table.NextRowId)
 	if err != nil {
 		return err
 	}
 
-	row, err := table.serializeRow(*node.Values)
-	if err != nil {
-		return err
-	}
-	copy(*slot, row)
+	// if mb.cur.table.NextRowId < insertするrowのkey {
+		
+	// }
 
-	table.NumRows ++
+	err = mb.cursor.InsertToLeafNode(*node.Values)
+	if err != nil {
+		return nil
+	}
 
 	return nil
 }
 
-func (mb *MemoryBackend) Select(node *parser.SelectNode) error {
+func (mb *MemoryBackend) Select(node *parser.SelectNode) ([]Result, error) {
 
 	results := []Result{}
 
 	if node == nil {
-		return errors.New("node is null,,,")
+		return nil, errors.New("node is null,,,")
 	}
 	
 	if node.From == nil {
-		return nil
+		return nil, nil //数値だけresultとして返すべき
 	}
 	table := mb.Tables[node.From.Value]
 	if table == nil {
-		return errors.New("Select: table not found")
+		return nil, errors.New("Select: table not found")
 	}
 
-	for i := uint(0); i < table.NumRows; i ++ {
-		slot, err := table.RowSlot(i)
-		if err != nil {
-			return err
-		}
-		row := table.deserializeRow(*slot)
-		results = append(results, row)
-	}
-
-	return nil
-}
-
-func (t *Table) RowSlot(rowId uint) (*[]byte, error) {
-
-	rowSize :=  t.RowSize()
-	RowsPerPage := PageSize / rowSize
-	pageNum := rowId / RowsPerPage
-	rowOffset := rowId % RowsPerPage
-	byteOffset := rowOffset * rowSize
-
-	page, err := t.SetPage(pageNum)
+	err := mb.newCursor(node.From.Value)
 	if err != nil {
 		return nil, err
 	}
 
-	slot := (*page)[byteOffset:]
-	return &slot, nil
+	for !(mb.cursor.end) {
+		slot, err := mb.cursor.RowSlot()
+		if err != nil {
+			return nil, err
+		}
+		mb.cursor.next()
+		row := table.deserializeRow(slot)
+		results = append(results, row)
+	}
+
+	return results, nil
 }
 
 func (t *Table)RowSize() uint {
@@ -195,7 +212,7 @@ func (t *Table)RowSize() uint {
 	return total
 }
 
-//serializeRowではテーブル構造とvaluesによるバリデーションは行わない
+//serializeRowではテーブル構造とvaluesによるバリデーションは行わない 別でバリデーション用の関数を作るべき
 func (t *Table)serializeRow(exps []*parser.Expression) ([]byte, error) {
 
 	buf := make([]byte, t.RowSize())

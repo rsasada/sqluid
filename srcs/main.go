@@ -7,7 +7,6 @@ import (
 	"github.com/rsasada/sqluid/srcs/parser"
 )
 
-// position, Cursor, Keyword, Symbol, TokenKind, Token構造体の定義があると仮定します
 
 func printTokens(tokens []*lexer.Token) {
 	for _, token := range tokens {
