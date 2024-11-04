@@ -142,7 +142,7 @@ func (t *Table) FindInTableByKey(key uint32) (*Cursor, error) {
 	if nodeType == LeafNode {
 		return t.FindInLeafNode(t.RootPageNum, key)
 	} else {
-		return nil, errors.New("NodeType: not found")
+		return t.FindInInternalNode(t.RootPageNum, key)
 	}
 }
 
@@ -180,3 +180,18 @@ func (t *Table) FindInLeafNode(pageNum uint32, key uint32) (*Cursor, error) {
 	cursor.cellNum = minIndex
 	return &cursor, nil
 }
+
+func (t *Table) FindInInternalNode(pageNum uint32, key uint32) error {
+
+	node err := t.SetPage(pageNum)
+	if err != nil {
+		return err
+	}
+
+	minIndex := 0
+	maxIndex := t.getInternalNodeNumKeys()
+	for ; minIndex != maxIndex; {
+		
+		midIndex := (minIndex + maxIndex) / 2
+		midKey := t.getInternalNodeKey(node)
+	}
