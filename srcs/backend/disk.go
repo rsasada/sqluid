@@ -79,7 +79,7 @@ func Executer(ast *parser.Ast, mb *MemoryBackend, results [][]Result) error {
 
 	} else if ast.Kind == parser.SelectType {
 
-		slctResult, err := mb.Select(ast.Select, results)
+		slctResult, err := mb.Select(ast.Select)
 		if err != nil {
 			return err
 		}
@@ -138,6 +138,8 @@ func (t *Table) setRowIdColumm() {
 
 func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 
+	var err error
+
 	if node == nil {
 		return errors.New("node is null,,,")
 	}
@@ -147,7 +149,7 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		return errors.New("Insert: Table not found")
 	}
 
-	node := table.SetPage(table.RootPageNum)
+	//page, err := table.SetPage(table.RootPageNum)
 
 	mb.cursor, err = table.FindInTableByKey(table.NextRowId)
 	if err != nil {
@@ -158,7 +160,7 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 		
 	// }
 
-	err := mb.cursor.InsertToLeafNode(*node.Values)
+	err = mb.cursor.InsertToLeafNode(*node.Values)
 	if err != nil {
 		return nil
 	}
@@ -166,31 +168,31 @@ func (mb *MemoryBackend) Insert(node *parser.InsertNode) error {
 	return nil
 }
 
-func (mb *MemoryBackend) Select(node *parser.SelectNode) ([]Results, error) {
+func (mb *MemoryBackend) Select(node *parser.SelectNode) ([]Result, error) {
 
 	results := []Result{}
 
 	if node == nil {
-		return errors.New("node is null,,,")
+		return nil, errors.New("node is null,,,")
 	}
 	
 	if node.From == nil {
-		return nil
+		return nil, nil //数値だけresultとして返すべき
 	}
 	table := mb.Tables[node.From.Value]
 	if table == nil {
-		return errors.New("Select: table not found")
+		return nil, errors.New("Select: table not found")
 	}
 
 	err := mb.newCursor(node.From.Value)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	for !(mb.cursor.end) {
 		slot, err := mb.cursor.RowSlot()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		mb.cursor.next()
 		row := table.deserializeRow(slot)

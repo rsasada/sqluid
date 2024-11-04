@@ -92,7 +92,7 @@ func (t *Table) leafNodeKey(node []byte, cellNum uint32) []byte {
 
 func (t *Table) getLeafNodeKey(node []byte, cellNum uint32) uint32 {
 	
-	keyNode := t.leafNodeKey(node cellNum)
+	keyNode := t.leafNodeKey(node, cellNum)
 	key := binary.BigEndian.Uint32(keyNode)
 	return key
 }
@@ -129,9 +129,13 @@ func (t *Table) isRootNode(node []byte) bool {
 	return true
 }
 
-func (t *Table) putNodeRoot(node []byte, bool) {
+func (t *Table) putNodeRoot(node []byte, flag bool) {
 
-	node[isRootOffset] = uint8(bool)
+	if flag == true {
+		node[isRootOffset] = 1
+	} else {
+		node[isRootOffset] = 0
+	}
 } 
 
 func (t *Table) leafNodeRightSplitCount() uint32 {
@@ -142,6 +146,6 @@ func (t *Table) leafNodeRightSplitCount() uint32 {
 
 func (t *Table) leafNodeLeftSplitCount() uint32 {
 	
-	left := t.leafNodeMaxCells - t.leafNodeRightSplitCount
+	left := t.leafNodeMaxCells() - t.leafNodeRightSplitCount()
 	return left
 }

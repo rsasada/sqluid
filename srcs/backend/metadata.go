@@ -23,8 +23,8 @@ type Metadata struct {
 func (mb *MemoryBackend)SaveMetadata() error {
 
 	metadata := Metadata{}
-	for name, table := range mb.Tables {
-		metaTable := convertTableToMeta(table, name)
+	for _, table := range mb.Tables {
+		metaTable := convertTableToMeta(table)
 		metadata.Tables = append(metadata.Tables, metaTable)
 	}
 	jsonData, err := json.MarshalIndent(metadata, "", "  ")

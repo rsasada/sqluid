@@ -20,7 +20,7 @@ const (
 )
 
 type internalNodeBody struct {
-	cells []InternalCell
+	cells []internalCell
 }
 
 type internalCell struct {

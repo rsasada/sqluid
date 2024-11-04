@@ -48,35 +48,39 @@ func (cur *Cursor) InsertToLeafNode(exps []*parser.Expression) error {
 
 func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 
-	oldNode, err := cur.SetPage(cur.pageNum)
+	oldNode, err := cur.table.SetPage(cur.pageNum)
 	if err != nil {
 		return err
 	}
 
 	unusedPage := cur.table.getUnusedPageNum()
-	newNode, err := cur.SetPage(unusedPage)
+	newNode, err := cur.table.SetPage(unusedPage)
 	if err != nil {
 		return err
 	}
 	cur.table.initLeafNode(newNode)
-	
-	for i := cur.table.leafNodeMaxCells; i > 0 ; i-- {
 
-		if i > leftNodeSplitCount {
-			destNode := newNode
+	for i := cur.table.leafNodeMaxCells(); i > 0 ; i-- {
+
+		var destNode []byte
+		if i > cur.table.leafNodeLeftSplitCount() {
+			destNode = newNode
 		} else {
-			destNode := oldNode
+			destNode = oldNode
 		}
 
-		destIndex := i % leftNodeSplitCount
+		destIndex := i % cur.table.leafNodeLeftSplitCount()
 
-		dest := leafNodeCell(destNode, destIndex)
+		dest := cur.table.leafNodeCell(destNode, destIndex)
 		if i == cur.cellNum {
 			cur.table.putLeafNodeKey(dest, cur.table.NextRowId)
-			row := cur.table.serializeRow(exps)
-			copy(dest[4:cur.table.RowSize()])
+			row, err := cur.table.serializeRow(exps)
+			if err != nil {
+				return err
+			}
+			copy(dest[4:cur.table.RowSize()], row)
 
-		} else if i > cellNum {
+		} else if i > cur.cellNum {
 			srcCell := cur.table.leafNodeCell(oldNode, i-1)
 			copy(dest, srcCell[:cur.table.leafCellSize()])
 
@@ -86,10 +90,10 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 		}
 	}
 
-	cur.table.putLeafNodeNumCells(oldNode, leafNodeLeftSplitCount)
-	cur.table.putLeafNodeNumCells(oldNode, leafNodeRightSplitCount)
+	cur.table.putLeafNodeNumCells(oldNode, cur.table.leafNodeLeftSplitCount())
+	cur.table.putLeafNodeNumCells(oldNode, cur.table.leafNodeRightSplitCount())
 
-	if isRootNode {
+	if cur.table.isRootNode(oldNode) {
 		return createNewRoot()
 	} else {
 		return nil
@@ -98,14 +102,14 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 
 func (t *Table) FindInTableByKey(key uint32) (*Cursor, error) {
 
-	node, err := SetPage(t.RootPageNum)
+	node, err := t.SetPage(t.RootPageNum)
 	if err != nil {
 		return nil, err
 	}
 
 	nodeType := t.getNodeType(node)
 	if nodeType == LeafNode {
-		return t.FindInLeafNode(key)
+		return t.FindInLeafNode(t.RootPageNum, key)
 	} else {
 		return nil, errors.New("NodeType: not found")
 	}
@@ -129,10 +133,10 @@ func (t *Table) FindInLeafNode(pageNum uint32, key uint32) (*Cursor, error) {
 	minIndex := uint32(0)
 	for ; minIndex != maxIndex; {
 		index := (maxIndex + minIndex) / 2
-		getKey := t.getLeafNodeKey(index)
+		getKey := t.getLeafNodeKey(node, index)
 		if (key == getKey) {
 			cursor.cellNum = index
-			return &cursor
+			return &cursor, nil
 		}
 
 		if key < getKey {
@@ -143,7 +147,7 @@ func (t *Table) FindInLeafNode(pageNum uint32, key uint32) (*Cursor, error) {
 	}
 
 	cursor.cellNum = minIndex
-	return &cursor
+	return &cursor, nil
 }
 
 func (t *Table) initLeafNode(leafNode []byte) {
