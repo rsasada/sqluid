@@ -194,4 +194,11 @@ func (t *Table) FindInInternalNode(pageNum uint32, key uint32) error {
 		
 		midIndex := (minIndex + maxIndex) / 2
 		midKey := t.getInternalNodeKey(node)
+
+		if midKey >= key {
+			maxIndex = midKey
+		} else if midKey < key {
+			minIndex = midIndex + 1
+		}
 	}
+}
