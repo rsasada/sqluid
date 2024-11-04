@@ -91,13 +91,44 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 	}
 
 	cur.table.putLeafNodeNumCells(oldNode, cur.table.leafNodeLeftSplitCount())
-	cur.table.putLeafNodeNumCells(oldNode, cur.table.leafNodeRightSplitCount())
+	cur.table.putLeafNodeNumCells(newNode, cur.table.leafNodeRightSplitCount())
 
 	if cur.table.isRootNode(oldNode) {
-		return createNewRoot()
+		return createNewRoot(unusedPage)
 	} else {
 		return nil
 	}
+}
+
+func (t *Table) CreateNewRoot(rightChildPageNum uint32) error {
+
+	root, err := t.SetPage(t.RootPageNum)
+	if err != nil {
+		return err
+	}
+
+	rightChildNode := t.SetPage(rightChildPageNum)
+	if err != nil {
+		return err
+	}
+
+	leftChildNum := t.getUnusedPageNum()
+	leftChildNode := t.SetPage(leftChildNum)
+	if err != nil {
+		return err
+	}
+
+	copy(leftChildNode, root)
+	t.putNodeRoot(leftChildNode, false)
+	
+	t.initInternalNode(root)
+	t.putNodeRoot(true)
+	t.putInternalNodeNumKeys(root, 1)
+	t.putInternalNodeChild(root, 0, leftChildNum)
+	t.putInternalNodeKey(root, 0, t.getNodeMaxKey(leftChildNode))
+	t.putInternalNodeRightChild(root, rightChildPageNum)
+
+	return nil
 }
 
 func (t *Table) FindInTableByKey(key uint32) (*Cursor, error) {
@@ -148,35 +179,4 @@ func (t *Table) FindInLeafNode(pageNum uint32, key uint32) (*Cursor, error) {
 
 	cursor.cellNum = minIndex
 	return &cursor, nil
-}
-
-func (t *Table) initLeafNode(leafNode []byte) {
-
-	t.putNodeType(leafNode, LeafNode)
-	t.putLeafNodeNumCells(leafNode, 0)
-}
-
-func (t *Table) CreateNewRoot(rightChildPageNum uint32) {
-
-	root, err := t.SetPage(t.RootPageNum)
-	if err != nil {
-		return err
-	}
-
-	rightChildNode := t.SetPage(rightChildPageNum)
-	if err != nil {
-		return err
-	}
-
-	leftChildNum := t.getUnusedPageNum()
-	leftChildNode := t.SetPage(leftChildNum)
-	if err != nil {
-		return err
-	}
-
-	copy(leftChildNode, root)
-	t.putNodeRoot(leftChildNode, false)
-
-	
-
 }

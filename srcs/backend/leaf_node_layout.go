@@ -50,6 +50,13 @@ const (
 	leafNodeSpaceForCells = PageSize - leafNodeHeaderSize
 )
 
+func (t *Table) initLeafNode(node []byte) {
+
+	t.putNodeType(Node, LeafNode)
+	t.putNodeRoot(node, false)
+	t.putLeafNodeNumCells(node, 0)
+}
+
 func (t *Table) leafCellValueSize() uint32{
 
 	return uint32(t.RowSize())
