@@ -24,12 +24,15 @@ const (
 type leafNodeHeader struct {
 	common		nodeHeader
 	numCells	uint32
+	nextLeaf	uint32
 }
 
 const (
 	numCellsSize = 4
 	numCellsOffset = nodeHeaderSize
-	leafNodeHeaderSize = numCellsSize + nodeHeaderSize
+	nextLeafSize = 4
+	nextLeafOffset = numCellsOffset + numCellsSize
+	leafNodeHeaderSize = numCellsSize + nodeHeaderSize + nextLeafSize
 )
 
 
@@ -52,9 +55,10 @@ const (
 
 func (t *Table) initLeafNode(node []byte) {
 
-	t.putNodeType(Node, LeafNode)
+	t.putNodeType(node, LeafNode)
 	t.putNodeRoot(node, false)
 	t.putLeafNodeNumCells(node, 0)
+	t.putLeafNodeNextLeaf(node, 0) // 0だとpageが存在するからどうしよう
 }
 
 func (t *Table) leafCellValueSize() uint32{
@@ -155,4 +159,23 @@ func (t *Table) leafNodeLeftSplitCount() uint32 {
 	
 	left := t.leafNodeMaxCells() - t.leafNodeRightSplitCount()
 	return left
+}
+
+func (t *Table) leafNodeNextLeaf(node []byte) []byte {
+
+	return node[nextLeafOffset:nextLeafOffset+nextLeafSize]
+}
+
+func (t *Table) putLeafNodeNextLeaf(node []byte, pageNum uint32) {
+
+	buf := t.leafNodeNextLeaf(node)
+	binary.BigEndian.PutUint32(buf, pageNum)
+}
+
+func (t *Table) getLeafNodeNextLeaf(node []byte) uint32 {
+
+	buf := t.leafNodeNextLeaf(node)
+	nextLeaf := binary.BigEndian.Uint32(buf)
+
+	return nextLeaf
 }

@@ -1,8 +1,8 @@
 package backend
 
 import (
-	"errors"
 	"github.com/rsasada/sqluid/srcs/parser"
+	"errors"
 )
 
 type NodeType int8
@@ -78,7 +78,7 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 			if err != nil {
 				return err
 			}
-			copy(dest[4:cur.table.RowSize()], row)
+			copy(dest[4:cur.table.RowSize()], row) //4ではなく定数を使うべきなのだけど長くなる
 
 		} else if i > cur.cellNum {
 			srcCell := cur.table.leafNodeCell(oldNode, i-1)
@@ -93,8 +93,11 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 	cur.table.putLeafNodeNumCells(oldNode, cur.table.leafNodeLeftSplitCount())
 	cur.table.putLeafNodeNumCells(newNode, cur.table.leafNodeRightSplitCount())
 
+	cur.table.putLeafNodeNextLeaf(newNode, cur.table.getLeafNodeNextLeaf(oldNode))
+	cur.table.putLeafNodeNextLeaf(oldNode, unusedPage)
+
 	if cur.table.isRootNode(oldNode) {
-		return createNewRoot(unusedPage)
+		return cur.table.CreateNewRoot(unusedPage)
 	} else {
 		return nil
 	}
@@ -107,13 +110,8 @@ func (t *Table) CreateNewRoot(rightChildPageNum uint32) error {
 		return err
 	}
 
-	rightChildNode := t.SetPage(rightChildPageNum)
-	if err != nil {
-		return err
-	}
-
 	leftChildNum := t.getUnusedPageNum()
-	leftChildNode := t.SetPage(leftChildNum)
+	leftChildNode, err := t.SetPage(leftChildNum)
 	if err != nil {
 		return err
 	}
@@ -122,7 +120,7 @@ func (t *Table) CreateNewRoot(rightChildPageNum uint32) error {
 	t.putNodeRoot(leftChildNode, false)
 	
 	t.initInternalNode(root)
-	t.putNodeRoot(true)
+	t.putNodeRoot(root, true)
 	t.putInternalNodeNumKeys(root, 1)
 	t.putInternalNodeChild(root, 0, leftChildNum)
 	t.putInternalNodeKey(root, 0, t.getNodeMaxKey(leftChildNode))
@@ -141,8 +139,10 @@ func (t *Table) FindInTableByKey(key uint32) (*Cursor, error) {
 	nodeType := t.getNodeType(node)
 	if nodeType == LeafNode {
 		return t.FindInLeafNode(t.RootPageNum, key)
-	} else {
+	} else if nodeType == InternalNode {
 		return t.FindInInternalNode(t.RootPageNum, key)
+	} else {
+		return nil, errors.New("nodeType not found")
 	}
 }
 
@@ -181,24 +181,39 @@ func (t *Table) FindInLeafNode(pageNum uint32, key uint32) (*Cursor, error) {
 	return &cursor, nil
 }
 
-func (t *Table) FindInInternalNode(pageNum uint32, key uint32) error {
+func (t *Table) FindInInternalNode(pageNum uint32, key uint32) (*Cursor, error) {
 
-	node err := t.SetPage(pageNum)
+	node, err := t.SetPage(pageNum)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	minIndex := 0
-	maxIndex := t.getInternalNodeNumKeys()
+	minIndex := uint32(0)
+	maxIndex := t.getInternalNodeNumKeys(node)
 	for ; minIndex != maxIndex; {
 		
 		midIndex := (minIndex + maxIndex) / 2
-		midKey := t.getInternalNodeKey(node)
+		midKey := t.getInternalNodeKey(node, midIndex)
 
 		if midKey >= key {
 			maxIndex = midKey
 		} else if midKey < key {
 			minIndex = midIndex + 1
 		}
+	}
+
+	childNum := t.getInternalNodeChild(node, minIndex)
+	child, err := t.SetPage(childNum)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeType := t.getNodeType(child)
+	if nodeType == LeafNode {
+		return t.FindInLeafNode(childNum, key)
+	} else if nodeType == InternalNode {
+		return t.FindInInternalNode(childNum, key)
+	} else {
+		return nil, errors.New("nodeType not found")
 	}
 }

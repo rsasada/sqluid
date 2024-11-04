@@ -13,21 +13,21 @@ type Cursor struct {
 
 func (mb *MemoryBackend) newCursor(tableName string) error {
 
-	cursor := Cursor{}
-
 	if mb.Tables[tableName] == nil {
 		return errors.New("Backend: table not found ")
 	}
-	cursor.table = mb.Tables[tableName]
 
-	cursor.pageNum = cursor.table.RootPageNum
-	cursor.cellNum = 0
-	
-	rootNode, err := cursor.table.SetPage(uint32(cursor.pageNum))
+	cursor, err := mb.Tables[tableName].FindInTableByKey(0)
 	if err != nil {
 		return err
 	}
-	numCells := cursor.table.leafNodeNumCells(rootNode)
+
+	node, err := cursor.table.SetPage(cursor.pageNum)
+	if err != nil {
+		return err
+	}
+
+	numCells := cursor.table.leafNodeNumCells(node)
 	cursor.end = (numCells == 0)
 
 	return nil	
@@ -36,8 +36,14 @@ func (mb *MemoryBackend) newCursor(tableName string) error {
 func (cur *Cursor) next() { 
 
 	cur.cellNum ++
-	if cur.cellNum >= cur.table.leafNodeNumCells(cur.table.Pager.Pages[cur.pageNum]) {
-		cur.end = true
+	if cur.cellNum >= cur.table.leafNodeNumCells(cur.table.Pager.Pages[cur.pageNum]) {		
+		nextPageNum:= cur.table.getLeafNodeNextLeaf(cur.table.Pager.Pages[cur.pageNum])
+		if nextPageNum == 0 {
+			return
+		} else {
+			cur.pageNum = nextPageNum
+			cur.cellNum = 0
+		}
 	}
 }
 

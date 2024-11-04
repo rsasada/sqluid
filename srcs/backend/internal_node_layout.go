@@ -2,6 +2,7 @@ package backend
 
 import (
 	"os"
+	"encoding/binary"
 )
 
 type internalNodeHeader struct {
@@ -74,7 +75,7 @@ func (t *Table) internalNodeChild(node []byte, cellNum uint32) []byte {
 	return cell[:internalNodeChildSize]
 }
 
-func (*Table) getInternalNodeChild(node []byte, cellNum uint32) uint32 {
+func (t *Table) getInternalNodeChild(node []byte, cellNum uint32) uint32 {
 	
 	buf := t.internalNodeChild(node, cellNum)
 	child := binary.BigEndian.Uint32(buf)
@@ -82,7 +83,7 @@ func (*Table) getInternalNodeChild(node []byte, cellNum uint32) uint32 {
 	return child
 }
 
-func (*Table) putInternalNodeChild(node []byte, cellNum uint32, child uint32) {
+func (t *Table) putInternalNodeChild(node []byte, cellNum uint32, child uint32) {
 
 	buf := t.internalNodeChild(node, cellNum)
 	binary.BigEndian.PutUint32(buf, child)
@@ -102,32 +103,34 @@ func (t *Table) getInternalNodeKey(node []byte, cellNum uint32) uint32 {
 	return key
 }
 
-func (*Table) putInternalNodeKey(node []byte, cellNum uint32, key uint32) {
+func (t *Table) putInternalNodeKey(node []byte, cellNum uint32, key uint32) {
 
 	buf := t.internalNodeChild(node, cellNum)
 	binary.BigEndian.PutUint32(buf, key)
 }
 
-func (t *Table) getNodeMaxKey(node []type) uint32 {
+func (t *Table) getNodeMaxKey(node []byte) uint32 {
 
-	nodeType := getNodeType(node)
+	nodeType := t.getNodeType(node)
 
 	if nodeType == InternalNode {
 		key := t.getInternalNodeKey(node, t.getInternalNodeNumKeys(node) - 1)
 		return key
 
 	} else if nodeType == LeafNode {
-		key := t.getLeafNodeKey(node, t.leafNodeNumCells() - 1)
+		key := t.getLeafNodeKey(node, t.leafNodeNumCells(node) - 1)
 		return key
 
 	} else {
-		os.Exit() //Too sloppy desu
+		os.Exit(0) //Too sloppy desu
 	}
+
+	return 0
 }
 
 func (t *Table) initInternalNode(node []byte) {
 
-	t.putInternalNodeNumKeys(0)
+	t.putInternalNodeNumKeys(node, 0)
 	t.putNodeRoot(node, false)
 	t.putInternalNodeNumKeys(node, 0)
 }
