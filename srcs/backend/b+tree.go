@@ -52,13 +52,17 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 	if err != nil {
 		return err
 	}
+	oldMax := cur.table.getNodeMaxKey(oldNode)
 
 	unusedPage := cur.table.getUnusedPageNum()
 	newNode, err := cur.table.SetPage(unusedPage)
 	if err != nil {
 		return err
 	}
+
 	cur.table.initLeafNode(newNode)
+	oldParent := cur.table.getNodeParent(oldNode)
+	cur.table.putNodeParent(newNode, oldParent)
 
 	for i := cur.table.leafNodeMaxCells(); i > 0 ; i-- {
 
@@ -99,7 +103,17 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 	if cur.table.isRootNode(oldNode) {
 		return cur.table.CreateNewRoot(unusedPage)
 	} else {
-		return nil
+
+		
+
+		parent, err := cur.table.SetPage(oldParent)
+		if err != nil {
+			return err
+		}
+
+
+		
+
 	}
 }
 
