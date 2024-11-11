@@ -251,3 +251,51 @@ func (t *Table) FindChildInInternalNode(node []byte, key uint32) (uint32, error)
 
 	return minIndex
 }
+
+
+func (t *Table) InsertToInternalNode(parentPageNum uint32, childPageNum uint32) error {
+
+	parent, err := t.SetPage(parentPageNum)
+	if err != nil {
+		return err
+	}
+
+	child, err := t.SetPage(childPageNum)
+	if err != nil {
+		return err
+	}
+
+	childMax := t.getNodeMaxKey(child)
+	index := t.FindChildInInternalNode(childMax)
+
+	parentNumKeys := t.getInternalNodeNumKeys(parent)
+	t.putInternalNodeNumKeys(parent, parentNumKeys + 1)
+
+	if parentNumKeys >= internalMaxNumKeys {
+		return 
+	}
+
+	rightPageNum := t.getInternalNodeRightChild(parent)
+	rightChild, err := t.SetPage(rightPageNum)
+	if err != nil {
+		return err
+	}
+	rightChildMax := t.getNodeMaxKey(rightChild)
+
+	if childMax > rightChildMax {
+		t.putInternalNodeChild(parent, parentNumKeys, rightChildPageNum)
+		t.putInternalNodeKey(parent, parentNumKeys, t.getNodeMaxKey(rightChild))
+		t.putInternalNodeRightChild(parent, childPageNum)
+	} else {
+
+		for i := parentNumKeys; i > index; i-- {
+			dest := t.internalNodeCell(parent, i)
+			src := t.internalNodeCell(parent, i - 1)
+			copy(dest, srcs)
+		}
+		t.putInternalNodeChild(parent, index, childPageNum)
+		t.putInternalNodeKey(parent, index, childMax)
+	}
+
+	return nil
+}

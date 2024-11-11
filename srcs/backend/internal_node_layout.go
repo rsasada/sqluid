@@ -33,6 +33,7 @@ const (
 	internalNodeKeySize = 4
 	internalNodeChildSize = 4
 	internalCellSize = internalNodeKeySize + internalNodeChildSize
+	internalMaxNumKeys = 3
 )
 
 func (t *Table) putInternalNodeNumKeys(node []byte, numKeys uint32) {
