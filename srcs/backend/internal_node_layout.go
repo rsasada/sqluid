@@ -134,3 +134,9 @@ func (t *Table) initInternalNode(node []byte) {
 	t.putNodeRoot(node, false)
 	t.putInternalNodeNumKeys(node, 0)
 }
+
+func (t *Table) internalNodeUpdateKey(node []byte, oldKey uint32, newKey uint32) {
+	
+	index := t.FindChildInInternalNode(node, oldKey)
+	putInternalNodeKey(node, index, newKey)
+}

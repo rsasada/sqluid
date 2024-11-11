@@ -104,16 +104,14 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 		return cur.table.CreateNewRoot(unusedPage)
 	} else {
 
-		
-
+		newMax := cur.table.getNodeMaxKey(oldNode)
 		parent, err := cur.table.SetPage(oldParent)
 		if err != nil {
 			return err
 		}
 
-
+		cur.table.internalNodeUpdateKey(parent, oldMax, newMax)
 		
-
 	}
 }
 
@@ -139,6 +137,9 @@ func (t *Table) CreateNewRoot(rightChildPageNum uint32) error {
 	t.putInternalNodeChild(root, 0, leftChildNum)
 	t.putInternalNodeKey(root, 0, t.getNodeMaxKey(leftChildNode))
 	t.putInternalNodeRightChild(root, rightChildPageNum)
+
+	t.putNodeParent(leftChildNode, t.RootPageNum)
+	t.putNodeParent(t.Pager.Pages[rightChildPageNum], t.RootPageNum)
 
 	return nil
 }
@@ -230,4 +231,23 @@ func (t *Table) FindInInternalNode(pageNum uint32, key uint32) (*Cursor, error) 
 	} else {
 		return nil, errors.New("nodeType not found")
 	}
+}
+
+func (t *Table) FindChildInInternalNode(node []byte, key uint32) (uint32, error) {
+
+	minIndex := uint32(0)
+	maxIndex := t.getInternalNodeNumKeys(node)
+	for ; minIndex != maxIndex; {
+		
+		midIndex := (minIndex + maxIndex) / 2
+		midKey := t.getInternalNodeKey(node, midIndex)
+
+		if midKey >= key {
+			maxIndex = midKey
+		} else if midKey < key {
+			minIndex = midIndex + 1
+		}
+	}
+
+	return minIndex
 }
