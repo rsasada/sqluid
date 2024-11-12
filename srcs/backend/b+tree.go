@@ -52,13 +52,17 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 	if err != nil {
 		return err
 	}
+	oldMax := cur.table.getNodeMaxKey(oldNode)
 
 	unusedPage := cur.table.getUnusedPageNum()
 	newNode, err := cur.table.SetPage(unusedPage)
 	if err != nil {
 		return err
 	}
+
 	cur.table.initLeafNode(newNode)
+	oldParent := cur.table.getNodeParent(oldNode)
+	cur.table.putNodeParent(newNode, oldParent)
 
 	for i := cur.table.leafNodeMaxCells(); i > 0 ; i-- {
 
@@ -99,7 +103,15 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 	if cur.table.isRootNode(oldNode) {
 		return cur.table.CreateNewRoot(unusedPage)
 	} else {
-		return nil
+
+		newMax := cur.table.getNodeMaxKey(oldNode)
+		parent, err := cur.table.SetPage(oldParent)
+		if err != nil {
+			return err
+		}
+
+		cur.table.internalNodeUpdateKey(parent, oldMax, newMax)
+		
 	}
 }
 
@@ -125,6 +137,9 @@ func (t *Table) CreateNewRoot(rightChildPageNum uint32) error {
 	t.putInternalNodeChild(root, 0, leftChildNum)
 	t.putInternalNodeKey(root, 0, t.getNodeMaxKey(leftChildNode))
 	t.putInternalNodeRightChild(root, rightChildPageNum)
+
+	t.putNodeParent(leftChildNode, t.RootPageNum)
+	t.putNodeParent(t.Pager.Pages[rightChildPageNum], t.RootPageNum)
 
 	return nil
 }
@@ -216,4 +231,71 @@ func (t *Table) FindInInternalNode(pageNum uint32, key uint32) (*Cursor, error) 
 	} else {
 		return nil, errors.New("nodeType not found")
 	}
+}
+
+func (t *Table) FindChildInInternalNode(node []byte, key uint32) (uint32, error) {
+
+	minIndex := uint32(0)
+	maxIndex := t.getInternalNodeNumKeys(node)
+	for ; minIndex != maxIndex; {
+		
+		midIndex := (minIndex + maxIndex) / 2
+		midKey := t.getInternalNodeKey(node, midIndex)
+
+		if midKey >= key {
+			maxIndex = midKey
+		} else if midKey < key {
+			minIndex = midIndex + 1
+		}
+	}
+
+	return minIndex
+}
+
+
+func (t *Table) InsertToInternalNode(parentPageNum uint32, childPageNum uint32) error {
+
+	parent, err := t.SetPage(parentPageNum)
+	if err != nil {
+		return err
+	}
+
+	child, err := t.SetPage(childPageNum)
+	if err != nil {
+		return err
+	}
+
+	childMax := t.getNodeMaxKey(child)
+	index := t.FindChildInInternalNode(childMax)
+
+	parentNumKeys := t.getInternalNodeNumKeys(parent)
+	t.putInternalNodeNumKeys(parent, parentNumKeys + 1)
+
+	if parentNumKeys >= internalMaxNumKeys {
+		return 
+	}
+
+	rightPageNum := t.getInternalNodeRightChild(parent)
+	rightChild, err := t.SetPage(rightPageNum)
+	if err != nil {
+		return err
+	}
+	rightChildMax := t.getNodeMaxKey(rightChild)
+
+	if childMax > rightChildMax {
+		t.putInternalNodeChild(parent, parentNumKeys, rightChildPageNum)
+		t.putInternalNodeKey(parent, parentNumKeys, t.getNodeMaxKey(rightChild))
+		t.putInternalNodeRightChild(parent, childPageNum)
+	} else {
+
+		for i := parentNumKeys; i > index; i-- {
+			dest := t.internalNodeCell(parent, i)
+			src := t.internalNodeCell(parent, i - 1)
+			copy(dest, srcs)
+		}
+		t.putInternalNodeChild(parent, index, childPageNum)
+		t.putInternalNodeKey(parent, index, childMax)
+	}
+
+	return nil
 }

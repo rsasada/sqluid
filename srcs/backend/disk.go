@@ -55,7 +55,7 @@ type Result struct {
 
 func InitBackend() (*MemoryBackend, error) {
 
-
+	
 }
 
 func Executer(ast *parser.Ast, mb *MemoryBackend, results [][]Result) error {

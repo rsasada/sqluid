@@ -179,3 +179,22 @@ func (t *Table) getLeafNodeNextLeaf(node []byte) uint32 {
 
 	return nextLeaf
 }
+
+func (t *Table) nodeParent(node []byte) []byte {
+
+	return node[parentPointerOffset:parentPointerOffset+4]
+}
+
+func (t *Table) getNodeParent(node []byte) uint32 {
+
+	buf := t.nodeParent(node)
+	parent := binary.BigEndian.Uint32(buf)
+
+	return parent
+}
+
+func (t *Table) putNodeParent(node []byte, parent uint32) {
+	
+	buf := t.nodeParent(node)
+	binary.BigEndian.PutUint32(buf, parent)
+}
