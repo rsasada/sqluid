@@ -136,8 +136,12 @@ func (t *Table) initInternalNode(node []byte) {
 	t.putInternalNodeNumKeys(node, 0)
 }
 
-func (t *Table) internalNodeUpdateKey(node []byte, oldKey uint32, newKey uint32) {
+func (t *Table) internalNodeUpdateKey(node []byte, oldKey uint32, newKey uint32) error{
 	
-	index := t.FindChildInInternalNode(node, oldKey)
-	putInternalNodeKey(node, index, newKey)
+	index, err := t.FindChildInInternalNode(node, oldKey)
+	if err != nil {
+		return err
+	}
+	t.putInternalNodeKey(node, index, newKey)
+	return nil
 }

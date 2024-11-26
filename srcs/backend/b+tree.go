@@ -111,7 +111,7 @@ func (cur *Cursor) LeafNodeSplitAndInsert(exps []*parser.Expression) error {
 		}
 
 		cur.table.internalNodeUpdateKey(parent, oldMax, newMax)
-		
+		return nil
 	}
 }
 
@@ -249,7 +249,7 @@ func (t *Table) FindChildInInternalNode(node []byte, key uint32) (uint32, error)
 		}
 	}
 
-	return minIndex
+	return minIndex, nil
 }
 
 
@@ -266,13 +266,16 @@ func (t *Table) InsertToInternalNode(parentPageNum uint32, childPageNum uint32) 
 	}
 
 	childMax := t.getNodeMaxKey(child)
-	index := t.FindChildInInternalNode(childMax)
+	index, err := t.FindChildInInternalNode(child, childMax)
+	if err != nil {
+		return err
+	}
 
 	parentNumKeys := t.getInternalNodeNumKeys(parent)
 	t.putInternalNodeNumKeys(parent, parentNumKeys + 1)
 
 	if parentNumKeys >= internalMaxNumKeys {
-		return 
+		return nil
 	}
 
 	rightPageNum := t.getInternalNodeRightChild(parent)
@@ -283,7 +286,7 @@ func (t *Table) InsertToInternalNode(parentPageNum uint32, childPageNum uint32) 
 	rightChildMax := t.getNodeMaxKey(rightChild)
 
 	if childMax > rightChildMax {
-		t.putInternalNodeChild(parent, parentNumKeys, rightChildPageNum)
+		t.putInternalNodeChild(parent, parentNumKeys, rightChildMax)
 		t.putInternalNodeKey(parent, parentNumKeys, t.getNodeMaxKey(rightChild))
 		t.putInternalNodeRightChild(parent, childPageNum)
 	} else {
@@ -291,7 +294,7 @@ func (t *Table) InsertToInternalNode(parentPageNum uint32, childPageNum uint32) 
 		for i := parentNumKeys; i > index; i-- {
 			dest := t.internalNodeCell(parent, i)
 			src := t.internalNodeCell(parent, i - 1)
-			copy(dest, srcs)
+			copy(dest, src)
 		}
 		t.putInternalNodeChild(parent, index, childPageNum)
 		t.putInternalNodeKey(parent, index, childMax)
