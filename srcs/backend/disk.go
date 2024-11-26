@@ -54,8 +54,11 @@ type Result struct {
 }
 
 func InitBackend() (*MemoryBackend, error) {
+	var mb MemoryBackend
 
-	
+	mb.LoadMetadata()
+
+	return &mb, nil
 }
 
 func Executer(ast *parser.Ast, mb *MemoryBackend, results [][]Result) error {
